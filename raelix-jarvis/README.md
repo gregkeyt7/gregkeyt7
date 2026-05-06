@@ -43,6 +43,25 @@ cd raelix-jarvis
 npm install
 ```
 
+## VS Code Quick Start
+
+Open the preconfigured workspace:
+
+```bash
+cd /workspace/raelix-jarvis
+code RAELIX.code-workspace
+```
+
+Then in VS Code:
+- press `Ctrl/Cmd + Shift + P` → **Tasks: Run Task**
+- run:
+  - **RAELIX: Install dependencies**
+  - **RAELIX: Dev (api + web)**
+
+Or run API/Web separately with:
+- **RAELIX: Dev API**
+- **RAELIX: Dev Web**
+
 ---
 
 ## Environment Setup
