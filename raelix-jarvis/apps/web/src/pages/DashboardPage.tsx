@@ -1,5 +1,6 @@
 import { FormEvent } from "react";
 import { Panel } from "../components/Panel";
+import { ConversationHistory } from "../components/ConversationHistory";
 import type { BootstrapPayload, ChatMessage, MemoryItem, TaskItem, ToolLog } from "../lib/types";
 
 interface DashboardPageProps {
@@ -12,6 +13,7 @@ interface DashboardPageProps {
   tasks: TaskItem[];
   memories: MemoryItem[];
   toolLogs: ToolLog[];
+  conversations: Array<{ id: number; title: string; updated_at: string }>;
   conversationId?: number;
   isListening: boolean;
   voiceSupported: boolean;
@@ -21,6 +23,7 @@ interface DashboardPageProps {
   onSpeak: () => void;
   onStartListening: () => void;
   onStopListening: () => void;
+  onConversationSelect: (conversationId: number) => void;
 }
 
 export const DashboardPage = ({
@@ -33,6 +36,7 @@ export const DashboardPage = ({
   tasks,
   memories,
   toolLogs,
+  conversations,
   conversationId,
   isListening,
   voiceSupported,
@@ -42,6 +46,7 @@ export const DashboardPage = ({
   onSpeak,
   onStartListening,
   onStopListening,
+  onConversationSelect,
 }: DashboardPageProps) => {
   return (
     <main className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
@@ -193,6 +198,11 @@ export const DashboardPage = ({
             {toolLogs.length === 0 ? <p className="text-sm text-slate-400">No tool activity yet.</p> : null}
           </div>
         </Panel>
+        <ConversationHistory
+          conversations={conversations}
+          activeConversationId={conversationId}
+          onSelect={onConversationSelect}
+        />
       </div>
     </main>
   );

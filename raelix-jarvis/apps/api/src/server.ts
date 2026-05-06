@@ -5,12 +5,13 @@ import { attachRequestContext } from "./middleware/requestContext.js";
 import { SqliteMemoryStore } from "@raelix/memory";
 import { BrainOrchestrator } from "./brain/orchestrator.js";
 import { createApiRouter } from "./routes/api.js";
+import type { UserRole } from "@raelix/shared";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
-app.use(attachRequestContext(env.defaultRole as "admin" | "family" | "child" | "guest"));
+app.use(attachRequestContext(env.defaultRole as UserRole));
 
 const memory = new SqliteMemoryStore(env.dbPath);
 const brain = new BrainOrchestrator(memory, env.projectsDir);

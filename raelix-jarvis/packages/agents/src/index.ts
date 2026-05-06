@@ -1,4 +1,4 @@
-import type { AgentContext, AgentDefinition, AgentName, AgentResult, ToolName } from "@raelix/shared";
+import type { AgentContext, AgentDefinition, AgentName, AgentResult, ToolExecutionResult, ToolName } from "@raelix/shared";
 import { executeTool, type ToolRuntimeContext } from "@raelix/tools";
 
 export interface AgentRuntime {
@@ -13,7 +13,7 @@ const runWithTools = async (
   tools: ToolName[],
   summaryBuilder: (toolSummaries: string[]) => string,
 ): Promise<AgentResult> => {
-  const toolResults = [];
+  const toolResults: ToolExecutionResult[] = [];
   for (const tool of tools) {
     const result = await executeTool(tool, input, runtime.tools);
     toolResults.push(result);

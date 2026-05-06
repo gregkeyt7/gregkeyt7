@@ -50,6 +50,12 @@ export interface BootstrapPayload {
     gmailReady: boolean;
     twilioReady: boolean;
   };
+  voice: {
+    webSpeechApi: "frontend-managed";
+    whisperReady: boolean;
+    elevenLabsReady: boolean;
+    openAiTtsReady: boolean;
+  };
   availableRoles: string[];
   availableModes: string[];
 }

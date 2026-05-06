@@ -1,6 +1,14 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { fetchBootstrap, fetchConversationMessages, fetchConversations, fetchMemories, fetchTasks, fetchToolLogs, sendChat } from "./lib/api";
-import type { BootstrapPayload, ChatMessage, ConversationItem, MemoryItem, TaskItem, ToolLog } from "./lib/types";
+import type {
+  BootstrapPayload,
+  ChatMessage,
+  ConversationItem,
+  MemoryItem,
+  StoredMessage,
+  TaskItem,
+  ToolLog,
+} from "./lib/types";
 import { useVoiceControls } from "./hooks/useVoiceControls";
 import { DashboardPage } from "./pages/DashboardPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -66,9 +74,14 @@ function App() {
     async (targetConversationId: number) => {
       setConversationId(targetConversationId);
       const history = await fetchConversationMessages(targetConversationId, headers);
+      const isRenderableMessage = (
+        entry: StoredMessage,
+      ): entry is StoredMessage & { role: "user" | "assistant" } =>
+        entry.role === "user" || entry.role === "assistant";
+
       setMessages(
         history
-          .filter((entry) => entry.role === "user" || entry.role === "assistant")
+          .filter(isRenderableMessage)
           .map((entry) => ({
             id: `${entry.id}`,
             role: entry.role,

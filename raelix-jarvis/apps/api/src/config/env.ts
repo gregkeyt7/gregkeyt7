@@ -1,6 +1,15 @@
 import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { UserRole } from "@raelix/shared";
 
-dotenv.config({ path: "../../.env" });
+const currentFile = fileURLToPath(import.meta.url);
+const apiSrcDir = path.dirname(currentFile);
+const apiDir = path.resolve(apiSrcDir, "..", "..");
+const projectRoot = path.resolve(apiDir, "..", "..");
+const envPath = path.join(projectRoot, ".env");
+
+dotenv.config({ path: envPath });
 dotenv.config();
 
 const toNumber = (value: string | undefined, fallback: number): number => {
@@ -8,10 +17,18 @@ const toNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseDefaultRole = (role: string | undefined): UserRole => {
+  if (role === "admin" || role === "family" || role === "child" || role === "guest") {
+    return role;
+  }
+  return "admin";
+};
+
 export const env = {
   port: toNumber(process.env.API_PORT, 4000),
-  dbPath: process.env.RAELIX_DB_PATH ?? "./data/raelix.db",
-  defaultRole: process.env.RAELIX_DEFAULT_ROLE ?? "admin",
+  dbPath: path.resolve(projectRoot, process.env.RAELIX_DB_PATH ?? "./data/raelix.db"),
+  projectsDir: path.resolve(projectRoot, process.env.RAELIX_PROJECTS_DIR ?? "./data/projects"),
+  defaultRole: parseDefaultRole(process.env.RAELIX_DEFAULT_ROLE),
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",

@@ -133,6 +133,10 @@ export class BrainOrchestrator {
     return Object.values(this.registry);
   }
 
+  isValidAgentName(agentName: string): agentName is AgentName {
+    return Object.prototype.hasOwnProperty.call(this.registry, agentName);
+  }
+
   async handleMessage(params: {
     input: string;
     userId: number;
@@ -147,9 +151,12 @@ export class BrainOrchestrator {
     response: string;
     toolResults: Array<{ tool: string; ok: boolean; summary: string }>;
   }> {
-    const requestedDecision = params.selectedAgent
+    const explicitAgent =
+      params.selectedAgent && this.isValidAgentName(params.selectedAgent) ? params.selectedAgent : undefined;
+
+    const requestedDecision = explicitAgent
       ? {
-          selectedAgent: params.selectedAgent,
+          selectedAgent: explicitAgent,
           reason: "Agent explicitly selected by user.",
         }
       : detectIntent(params.input);

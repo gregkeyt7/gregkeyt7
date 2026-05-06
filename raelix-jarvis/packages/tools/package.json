@@ -7,6 +7,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@raelix/shared": "workspace:*"
+    "@raelix/shared": "0.1.0"
   }
 }

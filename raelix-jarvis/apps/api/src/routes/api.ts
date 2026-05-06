@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { AgentName, UserRole } from "@raelix/shared";
+import type { UserRole } from "@raelix/shared";
 import { createPrintableDocument } from "../services/printerService.js";
 import { getCommunicationProviderStatus } from "../services/communicationService.js";
 import { smartHomeAdapters } from "../services/smartHomeService.js";
@@ -85,12 +85,16 @@ export const createApiRouter = ({ brain, memory }: ApiRouterDependencies): Route
 
     const { input, selectedAgent, conversationId } = req.body as {
       input?: string;
-      selectedAgent?: AgentName;
+      selectedAgent?: string;
       conversationId?: number;
     };
 
     if (!input || typeof input !== "string") {
       return res.status(400).json({ error: "input is required" });
+    }
+
+    if (selectedAgent && !brain.isValidAgentName(selectedAgent)) {
+      return res.status(400).json({ error: `Unknown agent: ${selectedAgent}` });
     }
 
     const user = await memory.ensureUser(ctx.userName, roleFallback(ctx.role));
@@ -99,7 +103,7 @@ export const createApiRouter = ({ brain, memory }: ApiRouterDependencies): Route
       userId: user.id,
       role: ctx.role,
       mode: ctx.mode,
-      selectedAgent,
+      selectedAgent: selectedAgent as AgentName | undefined,
       conversationId,
     });
 

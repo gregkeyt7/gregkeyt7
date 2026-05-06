@@ -1,6 +1,14 @@
-import type { BootstrapPayload, ChatResponse } from "./types";
+import type {
+  BootstrapPayload,
+  ChatResponse,
+  ConversationItem,
+  MemoryItem,
+  StoredMessage,
+  TaskItem,
+  ToolLog,
+} from "./types";
 
-const API_BASE = "http://localhost:4000/api";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api";
 
 export const fetchBootstrap = async (headers: Record<string, string>): Promise<BootstrapPayload> => {
   const response = await fetch(`${API_BASE}/bootstrap`, { headers });
@@ -36,25 +44,40 @@ export const sendChat = async (
 
 export const fetchTasks = async (headers: Record<string, string>) => {
   const response = await fetch(`${API_BASE}/tasks`, { headers });
-  return response.json();
+  if (!response.ok) {
+    throw new Error("Failed to load tasks");
+  }
+  return response.json() as Promise<TaskItem[]>;
 };
 
 export const fetchConversations = async (headers: Record<string, string>) => {
   const response = await fetch(`${API_BASE}/conversations`, { headers });
-  return response.json();
+  if (!response.ok) {
+    throw new Error("Failed to load conversations");
+  }
+  return response.json() as Promise<ConversationItem[]>;
 };
 
 export const fetchConversationMessages = async (conversationId: number, headers: Record<string, string>) => {
   const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, { headers });
-  return response.json();
+  if (!response.ok) {
+    throw new Error("Failed to load conversation messages");
+  }
+  return response.json() as Promise<StoredMessage[]>;
 };
 
 export const fetchMemories = async (headers: Record<string, string>) => {
   const response = await fetch(`${API_BASE}/memories`, { headers });
-  return response.json();
+  if (!response.ok) {
+    throw new Error("Failed to load memories");
+  }
+  return response.json() as Promise<MemoryItem[]>;
 };
 
 export const fetchToolLogs = async (headers: Record<string, string>) => {
   const response = await fetch(`${API_BASE}/tool-logs`, { headers });
-  return response.json();
+  if (!response.ok) {
+    throw new Error("Failed to load tool logs");
+  }
+  return response.json() as Promise<ToolLog[]>;
 };
