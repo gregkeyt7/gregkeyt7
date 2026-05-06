@@ -1,6 +1,7 @@
 import { createAgentRegistry, listAgents } from "@raelix/agents";
 import type { AgentDefinition, AgentName, BrainDecision, LiveSession, LiveSessionType, Mode, UserRole } from "@raelix/shared";
 import type { MemoryStore } from "@raelix/memory";
+import { decideAgentWithAI } from "@raelix/brain";
 
 const decisionMatrix: Array<{ keywords: string[]; agent: AgentName; reason: string }> = [
   {
@@ -154,6 +155,7 @@ export class BrainOrchestrator {
   constructor(
     private readonly memory: MemoryStore,
     private readonly projectsDir: string,
+    private readonly useAiRouting: boolean,
   ) {
     this.registry = createAgentRegistry({
       tools: {
@@ -209,6 +211,26 @@ export class BrainOrchestrator {
 
   isValidAgentName(agentName: string): agentName is AgentName {
     return Object.prototype.hasOwnProperty.call(this.registry, agentName);
+  }
+
+  private async decideIntent(input: string): Promise<BrainDecision> {
+    if (!this.useAiRouting) {
+      return detectIntent(input);
+    }
+
+    try {
+      const aiDecision = await decideAgentWithAI(input);
+      if (!this.isValidAgentName(aiDecision.selectedAgent)) {
+        throw new Error(`AI router returned invalid agent: ${aiDecision.selectedAgent}`);
+      }
+
+      return {
+        selectedAgent: aiDecision.selectedAgent,
+        reason: `AI router: ${aiDecision.reason}`,
+      };
+    } catch {
+      return detectIntent(input);
+    }
   }
 
   async getActiveLiveSession(userId: number): Promise<LiveSession | null> {
@@ -279,7 +301,7 @@ export class BrainOrchestrator {
             selectedAgent: liveAgentByType[ensuredLiveSession.session_type],
             reason: `Active live session (${ensuredLiveSession.session_type}) is guiding routing.`,
           }
-        : detectIntent(params.input);
+        : await this.decideIntent(params.input);
 
     const decision =
       params.role === "child" && requestedDecision.selectedAgent !== "Family / Kids Agent"

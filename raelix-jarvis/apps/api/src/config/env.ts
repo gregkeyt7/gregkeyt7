@@ -24,11 +24,27 @@ const parseDefaultRole = (role: string | undefined): UserRole => {
   return "admin";
 };
 
+const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
+  if (!value) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+};
+
 export const env = {
   port: toNumber(process.env.API_PORT, 4000),
   dbPath: path.resolve(projectRoot, process.env.RAELIX_DB_PATH ?? "./data/raelix.db"),
   projectsDir: path.resolve(projectRoot, process.env.RAELIX_PROJECTS_DIR ?? "./data/projects"),
   defaultRole: parseDefaultRole(process.env.RAELIX_DEFAULT_ROLE),
+  useAiRouting: parseBoolean(process.env.USE_AI_ROUTING, true),
   openAiApiKey: process.env.OPENAI_API_KEY ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",

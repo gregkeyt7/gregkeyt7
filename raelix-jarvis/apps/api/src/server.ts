@@ -14,7 +14,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(attachRequestContext(env.defaultRole as UserRole));
 
 const memory = new SqliteMemoryStore(env.dbPath);
-const brain = new BrainOrchestrator(memory, env.projectsDir);
+const brain = new BrainOrchestrator(memory, env.projectsDir, env.useAiRouting);
 
 await brain.initialize();
 
