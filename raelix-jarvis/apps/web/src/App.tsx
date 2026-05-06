@@ -37,7 +37,6 @@ function App() {
     setTasks(data.tasks);
     setMemories(data.memories);
     setToolLogs(data.toolLogs);
-    setSelectedAgent((current) => current ?? data.agents[0]?.name);
     const conversationList = await fetchConversations(headers);
     setConversations(conversationList);
   }, [headers]);
