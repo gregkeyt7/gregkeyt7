@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { UserRole } from "@raelix/shared";
+import type { AgentName, LiveSessionType, UserRole } from "@raelix/shared";
 import { createPrintableDocument } from "../services/printerService.js";
 import { getCommunicationProviderStatus } from "../services/communicationService.js";
 import { smartHomeAdapters } from "../services/smartHomeService.js";
@@ -19,6 +19,16 @@ const roleFallback = (role: string): UserRole => {
     return role;
   }
   return "admin";
+};
+
+const parseLiveSessionType = (value: string | undefined): LiveSessionType | null => {
+  if (!value) {
+    return null;
+  }
+  if (value === "cooking" || value === "education" || value === "workout" || value === "coding" || value === "project") {
+    return value;
+  }
+  return null;
 };
 
 export const createApiRouter = ({ brain, memory }: ApiRouterDependencies): Router => {
@@ -42,11 +52,12 @@ export const createApiRouter = ({ brain, memory }: ApiRouterDependencies): Route
     }
 
     const user = await memory.ensureUser(ctx.userName, roleFallback(ctx.role));
-    const [tasks, memories, toolLogs, conversations] = await Promise.all([
+    const [tasks, memories, toolLogs, conversations, activeLiveSession] = await Promise.all([
       memory.listTasks(user.id, 10),
       memory.listMemories(user.id, 10),
       memory.listToolLogs(user.id, 15),
       memory.listConversations(10),
+      brain.getActiveLiveSession(user.id),
     ]);
 
     return res.json({
@@ -56,6 +67,13 @@ export const createApiRouter = ({ brain, memory }: ApiRouterDependencies): Route
       memories,
       toolLogs,
       conversations,
+      activeLiveSession,
+      wakeWordSettings: {
+        primaryWakePhrase: "Hey Ray",
+        secondaryWakePhrase: "Mr. Ray",
+        assistantFullName: "RAELIX",
+        shortName: "Ray",
+      },
       smartHomeAdapters,
       providers: Object.values(aiProviders).map((provider) => ({
         name: provider.name,
@@ -97,17 +115,66 @@ export const createApiRouter = ({ brain, memory }: ApiRouterDependencies): Route
       return res.status(400).json({ error: `Unknown agent: ${selectedAgent}` });
     }
 
+    if (conversationId !== undefined && !Number.isFinite(conversationId)) {
+      return res.status(400).json({ error: "conversationId must be a number when provided" });
+    }
+
+    const parsedConversationId =
+      conversationId !== undefined ? Number(conversationId) : undefined;
+    if (parsedConversationId !== undefined && !Number.isFinite(parsedConversationId)) {
+      return res.status(400).json({ error: "conversationId must be a number when provided" });
+    }
+
     const user = await memory.ensureUser(ctx.userName, roleFallback(ctx.role));
     const result = await brain.handleMessage({
       input,
       userId: user.id,
       role: ctx.role,
       mode: ctx.mode,
-      selectedAgent: selectedAgent as AgentName | undefined,
-      conversationId,
+      selectedAgent: selectedAgent ? (selectedAgent as AgentName) : undefined,
+      conversationId: parsedConversationId,
     });
 
     return res.json(result);
+  });
+
+  router.get("/live-session", async (req, res) => {
+    const ctx = req.raelixContext;
+    if (!ctx) {
+      return res.status(500).json({ error: "Missing request context" });
+    }
+
+    const user = await memory.ensureUser(ctx.userName, roleFallback(ctx.role));
+    const activeLiveSession = await brain.getActiveLiveSession(user.id);
+    return res.json({ activeLiveSession });
+  });
+
+  router.post("/live-session/start", async (req, res) => {
+    const ctx = req.raelixContext;
+    if (!ctx) {
+      return res.status(500).json({ error: "Missing request context" });
+    }
+
+    const { sessionType, notes } = req.body as { sessionType?: string; notes?: string };
+    const parsedType = parseLiveSessionType(sessionType);
+    if (!parsedType) {
+      return res.status(400).json({ error: "sessionType must be one of cooking|education|workout|coding|project" });
+    }
+
+    const user = await memory.ensureUser(ctx.userName, roleFallback(ctx.role));
+    const activeLiveSession = await brain.startLiveSession(user.id, parsedType, notes);
+    return res.status(201).json({ activeLiveSession });
+  });
+
+  router.post("/live-session/stop", async (req, res) => {
+    const ctx = req.raelixContext;
+    if (!ctx) {
+      return res.status(500).json({ error: "Missing request context" });
+    }
+
+    const user = await memory.ensureUser(ctx.userName, roleFallback(ctx.role));
+    const activeLiveSession = await brain.stopLiveSession(user.id);
+    return res.json({ activeLiveSession });
   });
 
   router.get("/conversations", async (_req, res) => {

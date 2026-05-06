@@ -1,18 +1,45 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { fetchBootstrap, fetchConversationMessages, fetchConversations, fetchMemories, fetchTasks, fetchToolLogs, sendChat } from "./lib/api";
+import {
+  fetchBootstrap,
+  fetchConversationMessages,
+  fetchConversations,
+  fetchLiveSession,
+  fetchMemories,
+  fetchTasks,
+  fetchToolLogs,
+  sendChat,
+  startLiveSession,
+  stopLiveSession,
+} from "./lib/api";
 import type {
   BootstrapPayload,
   ChatMessage,
   ConversationItem,
+  LiveSession,
   MemoryItem,
   StoredMessage,
   TaskItem,
   ToolLog,
+  WakeWordSettings,
 } from "./lib/types";
 import { useVoiceControls } from "./hooks/useVoiceControls";
 import { DashboardPage } from "./pages/DashboardPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
+
+const activationPhrases = ["hey ray", "mr. ray", "mr ray", "raelix", "ray"];
+
+const normalizeVoiceTranscript = (input: string): string => {
+  const normalized = input.trim();
+  const lower = normalized.toLowerCase();
+  for (const phrase of activationPhrases) {
+    if (lower.startsWith(phrase)) {
+      const stripped = normalized.slice(phrase.length).replace(/^[:,\-\s]+/, "").trim();
+      return stripped || "";
+    }
+  }
+  return normalized;
+};
 
 function App() {
   const [bootstrap, setBootstrap] = useState<BootstrapPayload | null>(null);
@@ -28,6 +55,8 @@ function App() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [toolLogs, setToolLogs] = useState<ToolLog[]>([]);
+  const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
+  const [wakeWordSettings, setWakeWordSettings] = useState<WakeWordSettings | null>(null);
   const [loading, setLoading] = useState(false);
 
   const headers = useMemo(
@@ -45,9 +74,15 @@ function App() {
     setTasks(data.tasks);
     setMemories(data.memories);
     setToolLogs(data.toolLogs);
+    setLiveSession(data.activeLiveSession);
+    setWakeWordSettings(data.wakeWordSettings);
+    if (!selectedAgent && data.agents.length > 0) {
+      setSelectedAgent(data.agents[0].name);
+    }
+
     const conversationList = await fetchConversations(headers);
     setConversations(conversationList);
-  }, [headers]);
+  }, [headers, selectedAgent]);
 
   useEffect(() => {
     loadBootstrap().catch((error) => {
@@ -57,17 +92,19 @@ function App() {
   }, [loadBootstrap]);
 
   const refreshPanels = useCallback(async () => {
-    const [nextTasks, nextMemories, nextLogs, nextConversations] = await Promise.all([
+    const [nextTasks, nextMemories, nextLogs, nextConversations, nextLiveSession] = await Promise.all([
       fetchTasks(headers),
       fetchMemories(headers),
       fetchToolLogs(headers),
       fetchConversations(headers),
+      fetchLiveSession(headers),
     ]);
 
     setTasks(nextTasks);
     setMemories(nextMemories);
     setToolLogs(nextLogs);
     setConversations(nextConversations);
+    setLiveSession(nextLiveSession);
   }, [headers]);
 
   const selectConversation = useCallback(
@@ -76,8 +113,7 @@ function App() {
       const history = await fetchConversationMessages(targetConversationId, headers);
       const isRenderableMessage = (
         entry: StoredMessage,
-      ): entry is StoredMessage & { role: "user" | "assistant" } =>
-        entry.role === "user" || entry.role === "assistant";
+      ): entry is StoredMessage & { role: "user" | "assistant" } => entry.role === "user" || entry.role === "assistant";
 
       setMessages(
         history
@@ -116,6 +152,7 @@ function App() {
         );
 
         setConversationId(result.conversationId);
+        setLiveSession(result.activeLiveSession);
         setMessages((current) => [
           ...current,
           {
@@ -144,8 +181,36 @@ function App() {
     [chatInput, conversationId, headers, refreshPanels, selectedAgent],
   );
 
+  const handleStartLiveSession = useCallback(
+    (type: LiveSession["session_type"]) => {
+      startLiveSession(type, headers)
+        .then((session) => {
+          setLiveSession(session);
+        })
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error("Failed to start live session", error);
+        });
+    },
+    [headers],
+  );
+
+  const handleStopLiveSession = useCallback(() => {
+    stopLiveSession(headers)
+      .then((session) => {
+        setLiveSession(session);
+      })
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error("Failed to stop live session", error);
+      });
+  }, [headers]);
+
   const { isListening, supported, startListening, stopListening, speak } = useVoiceControls((transcript) => {
-    setChatInput(transcript);
+    const normalized = normalizeVoiceTranscript(transcript);
+    if (normalized) {
+      setChatInput(normalized);
+    }
   });
 
   return (
@@ -154,7 +219,7 @@ function App() {
         <div>
           <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Personal AI Operating System</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">RAELIX</h1>
-          <p className="mt-1 text-sm text-slate-300">Jarvis-style modular assistant with memory, agents, and tools.</p>
+          <p className="mt-1 text-sm text-slate-300">Jarvis-style modular assistant with advanced agents, live mode, and wake-word placeholders.</p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/80 p-1">
           {[
@@ -189,6 +254,8 @@ function App() {
           conversationId={conversationId}
           isListening={isListening}
           voiceSupported={supported}
+          liveSession={liveSession}
+          wakeWordSettings={wakeWordSettings}
           onChatInputChange={setChatInput}
           onSelectedAgentChange={setSelectedAgent}
           onSend={handleSend}
@@ -201,6 +268,8 @@ function App() {
               console.error("Failed to load conversation", error);
             });
           }}
+          onStartLiveSession={handleStartLiveSession}
+          onStopLiveSession={handleStopLiveSession}
         />
       )}
 

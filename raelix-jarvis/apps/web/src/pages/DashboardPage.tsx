@@ -1,7 +1,7 @@
 import { FormEvent } from "react";
 import { Panel } from "../components/Panel";
 import { ConversationHistory } from "../components/ConversationHistory";
-import type { BootstrapPayload, ChatMessage, MemoryItem, TaskItem, ToolLog } from "../lib/types";
+import type { BootstrapPayload, ChatMessage, LiveSession, MemoryItem, TaskItem, ToolLog, WakeWordSettings } from "../lib/types";
 
 interface DashboardPageProps {
   bootstrap: BootstrapPayload | null;
@@ -17,6 +17,8 @@ interface DashboardPageProps {
   conversationId?: number;
   isListening: boolean;
   voiceSupported: boolean;
+  liveSession: LiveSession | null;
+  wakeWordSettings: WakeWordSettings | null;
   onChatInputChange: (value: string) => void;
   onSelectedAgentChange: (value: string | undefined) => void;
   onSend: (event: FormEvent) => void;
@@ -24,6 +26,8 @@ interface DashboardPageProps {
   onStartListening: () => void;
   onStopListening: () => void;
   onConversationSelect: (conversationId: number) => void;
+  onStartLiveSession: (type: LiveSession["session_type"]) => void;
+  onStopLiveSession: () => void;
 }
 
 export const DashboardPage = ({
@@ -40,6 +44,8 @@ export const DashboardPage = ({
   conversationId,
   isListening,
   voiceSupported,
+  liveSession,
+  wakeWordSettings,
   onChatInputChange,
   onSelectedAgentChange,
   onSend,
@@ -47,7 +53,16 @@ export const DashboardPage = ({
   onStartListening,
   onStopListening,
   onConversationSelect,
+  onStartLiveSession,
+  onStopLiveSession,
 }: DashboardPageProps) => {
+  const advancedAgentCards = [
+    "Education Agent",
+    "Trading Agent",
+    "Tax Lien / Tax Deed Agent",
+    "Cooking / Live Guidance Agent",
+  ];
+
   return (
     <main className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
       <div className="space-y-4">
@@ -58,6 +73,7 @@ export const DashboardPage = ({
               value={selectedAgent}
               onChange={(event) => onSelectedAgentChange(event.target.value)}
             >
+              <option value="">Auto-route via Brain</option>
               {bootstrap?.agents.map((agent) => (
                 <option key={agent.id} value={agent.name}>
                   {agent.name}
@@ -82,7 +98,7 @@ export const DashboardPage = ({
           <div className="h-72 space-y-3 overflow-auto rounded-xl border border-slate-800 bg-slate-950/80 p-3">
             {messages.length === 0 ? (
               <p className="text-sm text-slate-400">
-                Try: "Tell Taylor a bedtime story", "Turn on living room lights", or "Create a roofing estimate reminder for tomorrow".
+                Try: "Tell Taylor a bedtime story", "Turn on living room lights", "Build a trading strategy", or "Go live cooking mode".
               </p>
             ) : null}
             {messages.map((message) => (
@@ -144,6 +160,21 @@ export const DashboardPage = ({
           </form>
         </Panel>
 
+        <Panel title="Advanced Specialist Agents" subtitle="Quick select cards for Education, Trading, Tax Lien/Deed, and Cooking">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {advancedAgentCards.map((agentName) => (
+              <button
+                key={agentName}
+                className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-left text-sm hover:border-neon/50"
+                onClick={() => onSelectedAgentChange(agentName)}
+                type="button"
+              >
+                {agentName}
+              </button>
+            ))}
+          </div>
+        </Panel>
+
         <Panel title="Smart Home" subtitle="Alexa, Google Home, Home Assistant, and Matter adapters are scaffolded">
           <div className="grid gap-2 sm:grid-cols-3">
             {["Turn on living room lights", "Dim bedroom lights to 40%", "Turn off all lights"].map((command) => (
@@ -161,6 +192,49 @@ export const DashboardPage = ({
       </div>
 
       <div className="space-y-4">
+        <Panel title="Live Mode" subtitle="Continuous session guidance until you stop it">
+          <div className="space-y-2 text-sm">
+            <p>
+              Status: <span className="text-neon">{liveSession ? "Active" : "Inactive"}</span>
+            </p>
+            <p>Session Type: {liveSession?.session_type ?? "None"}</p>
+            <p>Current Step: {liveSession?.current_step ?? "-"}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs"
+                type="button"
+                onClick={() => onStartLiveSession("cooking")}
+              >
+                Start Cooking Mode
+              </button>
+              <button
+                className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs"
+                type="button"
+                onClick={() => onStartLiveSession("education")}
+              >
+                Start Learning Mode
+              </button>
+              <button
+                className="rounded-xl border border-rose-500/60 bg-rose-900/20 px-3 py-2 text-xs"
+                type="button"
+                onClick={onStopLiveSession}
+              >
+                Stop Live Mode
+              </button>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="Wake Word Settings" subtitle="Placeholder wake-word configuration">
+          <div className="space-y-2 text-xs text-slate-300">
+            <p>Primary: {wakeWordSettings?.primaryWakePhrase ?? "Hey Ray"}</p>
+            <p>Secondary: {wakeWordSettings?.secondaryWakePhrase ?? "Mr. Ray"}</p>
+            <p>Assistant Full Name: {wakeWordSettings?.assistantFullName ?? "RAELIX"}</p>
+            <p>Short Name: {wakeWordSettings?.shortName ?? "Ray"}</p>
+            <p className="text-slate-500">Voice input recognizes activation phrase prefixes and strips them from commands.</p>
+          </div>
+        </Panel>
+
         <Panel title="Task Panel" subtitle="Persistent SQLite-backed reminders from Task Agent">
           <div className="max-h-44 space-y-2 overflow-auto">
             {tasks.map((task) => (
@@ -198,6 +272,7 @@ export const DashboardPage = ({
             {toolLogs.length === 0 ? <p className="text-sm text-slate-400">No tool activity yet.</p> : null}
           </div>
         </Panel>
+
         <ConversationHistory
           conversations={conversations}
           activeConversationId={conversationId}

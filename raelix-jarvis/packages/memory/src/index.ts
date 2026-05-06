@@ -1,7 +1,17 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import type { AgentDefinition, Conversation, MemoryItem, Message, TaskItem, ToolLog, UserRole } from "@raelix/shared";
+import type {
+  AgentDefinition,
+  Conversation,
+  LiveSession,
+  LiveSessionType,
+  MemoryItem,
+  Message,
+  TaskItem,
+  ToolLog,
+  UserRole,
+} from "@raelix/shared";
 
 export interface MemoryStore {
   initialize(agentCatalog: Pick<AgentDefinition, "name" | "description">[]): Promise<void>;
@@ -24,6 +34,18 @@ export interface MemoryStore {
   }): Promise<void>;
   listToolLogs(userId: number, limit?: number): Promise<ToolLog[]>;
   listAgents(): Promise<Array<{ id: number; name: string; description: string; active: number }>>;
+
+  upsertLearningProfile(userId: number, subject: string, level: string, notes: string): Promise<void>;
+  createStudySession(userId: number, subject: string, plan: string): Promise<number>;
+  createTradeJournalEntry(userId: number, entry: string): Promise<number>;
+  createWatchedAsset(userId: number, symbol: string, assetType: string, notes: string): Promise<number>;
+  createTaxLienProperty(userId: number, propertyRef: string, county: string, notes: string): Promise<number>;
+  createRecipe(userId: number, recipeName: string, steps: string): Promise<number>;
+
+  startLiveSession(userId: number, sessionType: LiveSessionType, notes?: string): Promise<LiveSession>;
+  getActiveLiveSession(userId: number): Promise<LiveSession | null>;
+  advanceLiveSessionStep(userId: number, notes?: string): Promise<LiveSession | null>;
+  stopLiveSession(userId: number, notes?: string): Promise<LiveSession | null>;
 }
 
 const now = () => new Date().toISOString();
@@ -110,6 +132,69 @@ export class SqliteMemoryStore implements MemoryStore {
         created_at TEXT NOT NULL,
         FOREIGN KEY(user_id) REFERENCES users(id)
       );
+
+      CREATE TABLE IF NOT EXISTS learning_profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        subject TEXT NOT NULL,
+        level TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(user_id, subject)
+      );
+
+      CREATE TABLE IF NOT EXISTS study_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        subject TEXT NOT NULL,
+        plan TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'open',
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS trade_journal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        entry TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS watched_assets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        symbol TEXT NOT NULL,
+        asset_type TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS tax_lien_properties (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        property_ref TEXT NOT NULL,
+        county TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS live_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        session_type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        current_step INTEGER NOT NULL,
+        notes TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        recipe_name TEXT NOT NULL,
+        steps TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
     `);
 
     const insertAgent = this.db.prepare(
@@ -135,9 +220,7 @@ export class SqliteMemoryStore implements MemoryStore {
       return existing;
     }
 
-    const result = this.db
-      .prepare("INSERT INTO users(name, role, created_at) VALUES(?, ?, ?)")
-      .run(name, role, now());
+    const result = this.db.prepare("INSERT INTO users(name, role, created_at) VALUES(?, ?, ?)").run(name, role, now());
 
     return { id: Number(result.lastInsertRowid), name, role };
   }
@@ -191,8 +274,7 @@ export class SqliteMemoryStore implements MemoryStore {
       .prepare("INSERT INTO tasks(user_id, title, due_date, status, created_at) VALUES(?, ?, ?, 'open', ?)")
       .run(userId, title, dueDate, now());
 
-    const record = this.db.prepare("SELECT * FROM tasks WHERE id = ?").get(Number(result.lastInsertRowid)) as TaskItem;
-    return record;
+    return this.db.prepare("SELECT * FROM tasks WHERE id = ?").get(Number(result.lastInsertRowid)) as TaskItem;
   }
 
   async listTasks(userId: number, limit = 20): Promise<TaskItem[]> {
@@ -229,5 +311,94 @@ export class SqliteMemoryStore implements MemoryStore {
       description: string;
       active: number;
     }>;
+  }
+
+  async upsertLearningProfile(userId: number, subject: string, level: string, notes: string): Promise<void> {
+    this.db
+      .prepare(
+        "INSERT INTO learning_profiles(user_id, subject, level, notes, updated_at) VALUES(?, ?, ?, ?, ?) ON CONFLICT(user_id, subject) DO UPDATE SET level = excluded.level, notes = excluded.notes, updated_at = excluded.updated_at",
+      )
+      .run(userId, subject, level, notes, now());
+  }
+
+  async createStudySession(userId: number, subject: string, plan: string): Promise<number> {
+    const result = this.db
+      .prepare("INSERT INTO study_sessions(user_id, subject, plan, status, created_at) VALUES(?, ?, ?, 'open', ?)")
+      .run(userId, subject, plan, now());
+    return Number(result.lastInsertRowid);
+  }
+
+  async createTradeJournalEntry(userId: number, entry: string): Promise<number> {
+    const result = this.db.prepare("INSERT INTO trade_journal(user_id, entry, created_at) VALUES(?, ?, ?)").run(userId, entry, now());
+    return Number(result.lastInsertRowid);
+  }
+
+  async createWatchedAsset(userId: number, symbol: string, assetType: string, notes: string): Promise<number> {
+    const result = this.db
+      .prepare("INSERT INTO watched_assets(user_id, symbol, asset_type, notes, created_at) VALUES(?, ?, ?, ?, ?)")
+      .run(userId, symbol, assetType, notes, now());
+    return Number(result.lastInsertRowid);
+  }
+
+  async createTaxLienProperty(userId: number, propertyRef: string, county: string, notes: string): Promise<number> {
+    const result = this.db
+      .prepare("INSERT INTO tax_lien_properties(user_id, property_ref, county, notes, created_at) VALUES(?, ?, ?, ?, ?)")
+      .run(userId, propertyRef, county, notes, now());
+    return Number(result.lastInsertRowid);
+  }
+
+  async createRecipe(userId: number, recipeName: string, steps: string): Promise<number> {
+    const result = this.db
+      .prepare("INSERT INTO recipes(user_id, recipe_name, steps, created_at) VALUES(?, ?, ?, ?)")
+      .run(userId, recipeName, steps, now());
+    return Number(result.lastInsertRowid);
+  }
+
+  async startLiveSession(userId: number, sessionType: LiveSessionType, notes?: string): Promise<LiveSession> {
+    this.db
+      .prepare("UPDATE live_sessions SET status = 'ended', ended_at = ? WHERE user_id = ? AND status = 'active'")
+      .run(now(), userId);
+
+    const result = this.db
+      .prepare(
+        "INSERT INTO live_sessions(user_id, session_type, status, current_step, notes, started_at, ended_at) VALUES(?, ?, 'active', 1, ?, ?, NULL)",
+      )
+      .run(userId, sessionType, notes ?? null, now());
+
+    return this.db.prepare("SELECT * FROM live_sessions WHERE id = ?").get(Number(result.lastInsertRowid)) as LiveSession;
+  }
+
+  async getActiveLiveSession(userId: number): Promise<LiveSession | null> {
+    const result = this.db
+      .prepare("SELECT * FROM live_sessions WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1")
+      .get(userId) as LiveSession | undefined;
+    return result ?? null;
+  }
+
+  async advanceLiveSessionStep(userId: number, notes?: string): Promise<LiveSession | null> {
+    const current = await this.getActiveLiveSession(userId);
+    if (!current) {
+      return null;
+    }
+
+    this.db
+      .prepare("UPDATE live_sessions SET current_step = ?, notes = COALESCE(?, notes) WHERE id = ?")
+      .run(current.current_step + 1, notes ?? null, current.id);
+
+    return (await this.getActiveLiveSession(userId)) as LiveSession;
+  }
+
+  async stopLiveSession(userId: number, notes?: string): Promise<LiveSession | null> {
+    const current = await this.getActiveLiveSession(userId);
+    if (!current) {
+      return null;
+    }
+
+    const endTime = now();
+    this.db
+      .prepare("UPDATE live_sessions SET status = 'ended', ended_at = ?, notes = COALESCE(?, notes) WHERE id = ?")
+      .run(endTime, notes ?? null, current.id);
+
+    return this.db.prepare("SELECT * FROM live_sessions WHERE id = ?").get(current.id) as LiveSession;
   }
 }

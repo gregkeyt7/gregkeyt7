@@ -1,4 +1,4 @@
-# RAELIX — Jarvis-Style Personal AI Operating System (MVP)
+# RAELIX — Jarvis-Style Personal AI Operating System (MVP+)
 
 RAELIX is a modular personal AI operating system built for local development with production-minded architecture.
 
@@ -8,6 +8,8 @@ It ships with:
 - Brain Orchestrator with specialist agent routing
 - Modular agent and tool registries
 - SQLite memory system for persistent state
+- Live Session Mode (step-by-step continuous guidance)
+- Wake-word placeholder model (`Hey Ray`, `Mr. Ray`)
 - Voice controls (Web Speech API in frontend)
 - Placeholders for OpenAI, Gemini, Claude, Ollama, Gmail, Twilio, smart-home integrations, and printer workflows
 
@@ -36,8 +38,6 @@ raelix-jarvis/
 
 ## Installation
 
-From repository root:
-
 ```bash
 cd raelix-jarvis
 npm install
@@ -47,13 +47,9 @@ npm install
 
 ## Environment Setup
 
-Create a local `.env` file:
-
 ```bash
 cp .env.example .env
 ```
-
-Placeholders included (safe to leave empty for MVP):
 
 ```env
 OPENAI_API_KEY=
@@ -72,6 +68,12 @@ WEB_PORT=5173
 RAELIX_DEFAULT_ROLE=admin
 RAELIX_DB_PATH=./data/raelix.db
 RAELIX_PROJECTS_DIR=./data/projects
+```
+
+Optional frontend override:
+
+```env
+VITE_API_BASE_URL=http://localhost:4000/api
 ```
 
 > Keys remain backend-only and are never sent to the frontend.
@@ -96,19 +98,96 @@ npm run dev:web
 
 ---
 
-## MVP Test Flow (What to test first)
+## New Advanced Agents
 
-1. Open dashboard in browser.
-2. Send: `Tell Taylor a bedtime story`
-   - Brain should route to **Family / Kids Agent**.
-   - Response should include bedtime story output.
-3. Send: `Turn on living room lights`
-   - Brain should route to **Smart Home Agent**.
-   - Tool log should show mock smart-home success.
-4. Send: `Create a roofing estimate reminder for tomorrow`
-   - Brain should route to **Task Agent**.
-   - Task should appear in Task Panel.
-5. Open conversation history and tool logs to verify persistence.
+### Education Agent
+- Teaches topics from beginner to expert
+- Can create quizzes, flashcards, study plans, and lesson plans
+- Uses Step 1-only default for hard topics unless user asks to continue
+
+### Trading Agent
+- Strategy analysis, backtesting plans, journal entries, Pine Script templates, risk sizing
+- **Safety rules enforced**:
+  - no guaranteed profit claims
+  - no "hardly ever lose" claims
+  - no live trade execution
+  - defaults to risk management + paper/backtest-first workflow
+
+### Tax Lien / Tax Deed Agent
+- Tax lien vs deed explanation
+- County checklist and due diligence support
+- Property/auction note tracking placeholders
+
+### Cooking / Live Guidance Agent
+- Step-by-step cooking guidance
+- Timer suggestions, recipe steps, substitutions, meal planning context
+- Supports live kitchen mode
+
+---
+
+## Live Session Mode
+
+Supported session types:
+- `cooking`
+- `education`
+- `workout`
+- `coding`
+- `project`
+
+Behavior:
+- RAELIX can keep guiding step-by-step while a live session is active
+- Step counter advances as guidance continues
+- Stop phrases supported:
+  - `quit`
+  - `stop live mode`
+  - `end session`
+  - `that's enough Ray` / `that’s enough Ray`
+  - `cancel live mode`
+
+API endpoints:
+- `GET /api/live-session`
+- `POST /api/live-session/start`
+- `POST /api/live-session/stop`
+
+---
+
+## Wake Word Placeholder Design
+
+Current placeholder settings:
+- Primary: `Hey Ray`
+- Secondary: `Mr. Ray`
+- Full assistant name: `RAELIX`
+- Short name: `Ray`
+
+Frontend voice flow strips activation phrase prefixes before sending commands.
+
+### Adding Home Assistant wake-word integration later
+- Keep wake-word detection local/edge for privacy and latency
+- Forward only post-activation command text to API
+- Add confidence threshold and fallback to manual push-to-talk
+- Keep user-configurable phrase profiles in secure settings storage
+
+---
+
+## Memory & Storage
+
+SQLite tables include:
+- `users`
+- `conversations`
+- `messages`
+- `memories`
+- `tasks`
+- `agents`
+- `tool_logs`
+- `learning_profiles`
+- `study_sessions`
+- `trade_journal`
+- `watched_assets`
+- `tax_lien_properties`
+- `live_sessions`
+- `recipes`
+
+Designed so memory layer can later be replaced with PostgreSQL/Supabase adapter.
 
 ---
 
@@ -116,12 +195,14 @@ npm run dev:web
 
 `apps/api/src/brain/orchestrator.ts`
 
-- Receives user input from `/api/chat`.
-- Detects intent via keyword-based decision matrix (or honors manual agent selection).
-- Enforces child-role guardrails by routing through Family/Kids profile.
-- Runs selected agent.
-- Stores user + assistant messages.
-- Persists memory hints and tool logs.
+- Receives input from `/api/chat`
+- Detects explicit live-session stop commands
+- Starts live sessions when requested
+- Routes by active live session type when live mode is active
+- Otherwise routes by intent keyword matrix
+- Applies child-role safety override
+- Runs selected agent + tool chain
+- Persists conversation, memory hints, and tool logs
 
 ---
 
@@ -136,20 +217,10 @@ Each agent includes:
 - `sampleBehavior`
 - async `run(input, context)`
 
-Current agents:
-- General Assistant Agent
-- Coding Agent
-- Business Strategy Agent
-- Smart Home Agent
-- Email Agent
-- Calendar Agent
-- Task Agent
-- Family / Kids Agent
-- Bible / Faith Agent
-- Research Agent
-- File Manager Agent
-- Printer Agent
-- Security Agent
+Add a new agent by:
+1. Extending `AgentName` in `packages/shared/src/index.ts`
+2. Adding the agent definition in `packages/agents/src/index.ts`
+3. Adding routing keywords in `apps/api/src/brain/orchestrator.ts`
 
 ---
 
@@ -157,43 +228,23 @@ Current agents:
 
 `packages/tools/src/index.ts`
 
-Tool registry maps tool names to handlers. Current mock tools:
-- send_email
-- read_email
-- send_text
-- make_phone_call
-- create_calendar_event
-- create_task
-- turn_on_light
-- dim_light
-- turn_off_all_lights
-- print_document
-- search_web
-- create_file
-- read_file
-- generate_code
-- tell_bedtime_story
-- bible_verse_lookup
+Registry includes communication, tasking, smart-home placeholders, coding/file tools, education/trading/tax/cooking helpers, and live-session controls.
 
-Tools can later be swapped from mock logic to real service adapters with minimal API changes.
+Add a new tool by:
+1. Extending `ToolName` in `packages/shared/src/index.ts`
+2. Adding handler in `packages/tools/src/index.ts`
+3. Wiring it into allowed tools for relevant agents
 
 ---
 
-## How to Add a New Agent
+## Broker API Integration Later (Trading)
 
-1. Open `packages/agents/src/index.ts`
-2. Add a new agent object in `baseAgents(runtime)` with required fields.
-3. Assign `allowedTools` and implement `run()`.
-4. Add Brain routing keywords in `apps/api/src/brain/orchestrator.ts` decision matrix (optional but recommended).
-
----
-
-## How to Add a New Tool
-
-1. Open `packages/shared/src/index.ts` and add tool name to `ToolName` union.
-2. Open `packages/tools/src/index.ts` and add handler to `toolRegistry`.
-3. Add tool to desired agents in `packages/agents/src/index.ts`.
-4. Verify tool logs in dashboard after chat execution.
+When adding real broker execution:
+- require explicit confirmation layers (2-step or signed intent)
+- separate simulation endpoints from execution endpoints
+- enforce server-side risk limits and max position caps
+- keep audit logging for every action
+- start with paper environment only before enabling live keys
 
 ---
 
@@ -202,20 +253,3 @@ Tools can later be swapped from mock logic to real service adapters with minimal
 - API keys live in `.env`, never in frontend.
 - Role-ready structure included: `admin`, `family`, `child`, `guest`.
 - Request context middleware accepts role/mode headers and can be extended for real auth.
-
----
-
-## Data Storage
-
-SQLite file default: `./data/raelix.db`
-
-Tables:
-- users
-- conversations
-- messages
-- memories
-- tasks
-- agents
-- tool_logs
-
-Designed so memory layer can later be replaced with PostgreSQL/Supabase adapter.

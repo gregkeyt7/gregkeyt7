@@ -8,7 +8,7 @@ export interface AgentRuntime {
 const runWithTools = async (
   name: AgentName,
   input: string,
-  context: AgentContext,
+  _context: AgentContext,
   runtime: AgentRuntime,
   tools: ToolName[],
   summaryBuilder: (toolSummaries: string[]) => string,
@@ -43,12 +43,14 @@ const baseAgents = (runtime: AgentRuntime): AgentDefinition[] => [
     id: "coding-agent",
     name: "Coding Agent",
     description: "Builds app plans, starter files, and explains code in beginner-friendly language.",
-    allowedTools: ["generate_code", "create_file", "read_file"],
+    allowedTools: ["generate_code", "create_file", "read_file", "start_live_session", "stop_live_session"],
     sampleBehavior: "Generates practical code snippets and stores outputs in data/projects.",
-    run: async (input, context) =>
-      runWithTools("Coding Agent", input, context, runtime, ["generate_code"], (toolSummaries) =>
+    run: async (input, context) => {
+      const tools: ToolName[] = context.liveSession?.sessionType === "coding" ? ["generate_code"] : ["generate_code"];
+      return runWithTools("Coding Agent", input, context, runtime, tools, (toolSummaries) =>
         `Coding Agent delivered a starter implementation. ${toolSummaries.join(" ")}`,
-      ),
+      );
+    },
   },
   {
     id: "business-strategy-agent",
@@ -181,6 +183,126 @@ const baseAgents = (runtime: AgentRuntime): AgentDefinition[] => [
       runWithTools("Security Agent", input, context, runtime, ["search_web"], (toolSummaries) =>
         `Security review prepared. ${toolSummaries.join(" ")}`,
       ),
+  },
+  {
+    id: "education-agent",
+    name: "Education Agent",
+    description:
+      "Teaches from beginner through expert levels with quizzes, study plans, lesson plans, and step-by-step progression.",
+    allowedTools: ["create_quiz", "create_flashcards", "create_lesson_plan", "start_live_session", "stop_live_session"],
+    sampleBehavior:
+      "Breaks difficult topics into Step 1 first, explains like you are 12 when requested, and continues only when asked.",
+    run: async (input, context) => {
+      const lower = input.toLowerCase();
+      const tools: ToolName[] = [];
+      if (lower.includes("quiz")) {
+        tools.push("create_quiz");
+      }
+      if (lower.includes("flashcard")) {
+        tools.push("create_flashcards");
+      }
+      if (lower.includes("study plan") || lower.includes("lesson")) {
+        tools.push("create_lesson_plan");
+      }
+      if (lower.includes("live") || lower.includes("learning mode")) {
+        tools.push("start_live_session");
+      }
+      if (tools.length === 0) {
+        tools.push("create_lesson_plan");
+      }
+
+      return runWithTools("Education Agent", input, context, runtime, tools, (toolSummaries) => {
+        const continueRequested = lower.includes("continue") || lower.includes("next step");
+        const stepGuidance = continueRequested
+          ? "Continuing the lesson with the next sequence of concepts."
+          : "Step 1 only: start with core vocabulary and one simple example before moving ahead.";
+        return `Education mode active. ${stepGuidance} ${toolSummaries.join(" ")}`;
+      });
+    },
+  },
+  {
+    id: "trading-agent",
+    name: "Trading Agent",
+    description:
+      "Supports research, strategy planning, journaling, backtesting, and risk management with paper-trading-first guidance.",
+    allowedTools: [
+      "calculate_position_size",
+      "create_trade_journal_entry",
+      "generate_pine_script",
+      "create_backtest_plan",
+      "search_web",
+    ],
+    sampleBehavior:
+      "Never promises guaranteed profit, defaults to paper testing/backtesting, and emphasizes risk controls first.",
+    run: async (input, context) => {
+      const lower = input.toLowerCase();
+      const tools: ToolName[] = [];
+      if (lower.includes("pine") || lower.includes("tradingview")) {
+        tools.push("generate_pine_script");
+      }
+      if (lower.includes("backtest")) {
+        tools.push("create_backtest_plan");
+      }
+      if (lower.includes("journal")) {
+        tools.push("create_trade_journal_entry");
+      }
+      if (lower.includes("risk") || lower.includes("position")) {
+        tools.push("calculate_position_size");
+      }
+      if (tools.length === 0) {
+        tools.push("create_backtest_plan", "calculate_position_size");
+      }
+
+      return runWithTools("Trading Agent", input, context, runtime, tools, (toolSummaries) =>
+        `Trading guidance ready. Safety first: no guaranteed profits, no live trade execution, and always validate with risk management plus paper testing before deployment. ${toolSummaries.join(" ")}`,
+      );
+    },
+  },
+  {
+    id: "tax-lien-tax-deed-agent",
+    name: "Tax Lien / Tax Deed Agent",
+    description:
+      "Researches tax lien and tax deed opportunities, county checklists, bid planning, redemption notes, and due diligence.",
+    allowedTools: ["analyze_tax_lien_property", "create_due_diligence_checklist", "create_task"],
+    sampleBehavior:
+      "Highlights auction risks, legal steps, redemption timelines, and documentation checks before bidding.",
+    run: async (input, context) => {
+      const lower = input.toLowerCase();
+      const tools: ToolName[] = ["create_due_diligence_checklist"];
+      if (lower.includes("analyze") || lower.includes("property") || lower.includes("auction")) {
+        tools.unshift("analyze_tax_lien_property");
+      }
+      return runWithTools("Tax Lien / Tax Deed Agent", input, context, runtime, tools, (toolSummaries) =>
+        `Tax lien/deed research packet prepared with risk flags, redemption reminders, and bid-discipline guidance. ${toolSummaries.join(" ")}`,
+      );
+    },
+  },
+  {
+    id: "cooking-live-guidance-agent",
+    name: "Cooking / Live Guidance Agent",
+    description:
+      "Provides live, hands-free cooking guidance with recipes, measurements, substitutions, timers, and nutrition-aware adjustments.",
+    allowedTools: ["create_recipe_steps", "set_cooking_timer", "start_live_session", "stop_live_session"],
+    sampleBehavior:
+      "Walks through one step at a time in kitchen mode and can keep guiding until the live session is stopped.",
+    run: async (input, context) => {
+      const lower = input.toLowerCase();
+      const tools: ToolName[] = [];
+      if (lower.includes("start") || lower.includes("live") || lower.includes("kitchen mode")) {
+        tools.push("start_live_session");
+      }
+      tools.push("create_recipe_steps");
+      if (lower.includes("timer") || lower.includes("bake") || lower.includes("simmer")) {
+        tools.push("set_cooking_timer");
+      }
+
+      return runWithTools("Cooking / Live Guidance Agent", input, context, runtime, tools, (toolSummaries) => {
+        const sessionNote = context.liveSession
+          ? `Live session step ${context.liveSession.currentStep}: complete this step before requesting the next one.`
+          : "Start cooking mode for continuous step-by-step guidance.";
+        return `Kitchen guidance activated. ${sessionNote} ${toolSummaries.join(" ")}`;
+      });
+    },
   },
 ];
 

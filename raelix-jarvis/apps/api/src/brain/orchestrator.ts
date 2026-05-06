@@ -1,8 +1,28 @@
 import { createAgentRegistry, listAgents } from "@raelix/agents";
-import type { AgentDefinition, AgentName, BrainDecision, Mode, UserRole } from "@raelix/shared";
+import type { AgentDefinition, AgentName, BrainDecision, LiveSession, LiveSessionType, Mode, UserRole } from "@raelix/shared";
 import type { MemoryStore } from "@raelix/memory";
 
 const decisionMatrix: Array<{ keywords: string[]; agent: AgentName; reason: string }> = [
+  {
+    keywords: ["teach", "explain", "study", "quiz", "lesson", "flashcard", "help my child learn"],
+    agent: "Education Agent",
+    reason: "Detected education and learning intent.",
+  },
+  {
+    keywords: ["trade", "trading", "crypto", "forex", "pine", "backtest", "position size", "journal this trade"],
+    agent: "Trading Agent",
+    reason: "Detected trading research and strategy intent.",
+  },
+  {
+    keywords: ["tax lien", "tax deed", "auction", "property bid", "county checklist", "redemption period"],
+    agent: "Tax Lien / Tax Deed Agent",
+    reason: "Detected tax lien / tax deed investing intent.",
+  },
+  {
+    keywords: ["cook", "recipe", "dinner", "ingredients", "kitchen", "meal prep"],
+    agent: "Cooking / Live Guidance Agent",
+    reason: "Detected cooking and live guidance intent.",
+  },
   {
     keywords: ["bedtime", "story", "kids", "child", "taylor"],
     agent: "Family / Kids Agent",
@@ -65,6 +85,16 @@ const decisionMatrix: Array<{ keywords: string[]; agent: AgentName; reason: stri
   },
 ];
 
+const stopLiveCommands = ["quit", "stop live mode", "end session", "that's enough ray", "that’s enough ray", "cancel live mode"];
+
+const liveAgentByType: Record<LiveSessionType, AgentName> = {
+  cooking: "Cooking / Live Guidance Agent",
+  education: "Education Agent",
+  workout: "General Assistant Agent",
+  coding: "Coding Agent",
+  project: "General Assistant Agent",
+};
+
 const detectIntent = (input: string): BrainDecision => {
   const lower = input.toLowerCase();
   const match = decisionMatrix.find((entry) => entry.keywords.some((keyword) => lower.includes(keyword)));
@@ -80,6 +110,26 @@ const detectIntent = (input: string): BrainDecision => {
     selectedAgent: "General Assistant Agent",
     reason: "No specialist keyword detected, using general assistant fallback.",
   };
+};
+
+const detectLiveSessionStart = (input: string): LiveSessionType | null => {
+  const lower = input.toLowerCase();
+  if (lower.includes("start cooking mode") || lower.includes("go live cooking mode") || lower.includes("start kitchen mode")) {
+    return "cooking";
+  }
+  if (lower.includes("start learning mode") || lower.includes("go live learning mode") || lower.includes("start education mode")) {
+    return "education";
+  }
+  if (lower.includes("start coding mode") || lower.includes("go live coding mode")) {
+    return "coding";
+  }
+  if (lower.includes("start workout mode")) {
+    return "workout";
+  }
+  if (lower.includes("start project mode")) {
+    return "project";
+  }
+  return null;
 };
 
 const rememberImportantFacts = async (memory: MemoryStore, userId: number, input: string): Promise<void> => {
@@ -113,6 +163,14 @@ export class BrainOrchestrator {
           const task = await this.memory.createTask(1, title, dueDate);
           return { id: task.id, title: task.title };
         },
+        createStudySession: async (subject, plan) => this.memory.createStudySession(1, subject, plan),
+        createTradeJournalEntry: async (entry) => this.memory.createTradeJournalEntry(1, entry),
+        createWatchedAsset: async (symbol, assetType, notes) => this.memory.createWatchedAsset(1, symbol, assetType, notes),
+        createTaxLienProperty: async (propertyRef, county, notes) =>
+          this.memory.createTaxLienProperty(1, propertyRef, county, notes),
+        createRecipe: async (recipeName, steps) => this.memory.createRecipe(1, recipeName, steps),
+        startLiveSession: async (sessionType, notes) => this.memory.startLiveSession(1, sessionType, notes),
+        stopLiveSession: async (notes) => this.memory.stopLiveSession(1, notes),
       },
     });
   }
@@ -124,6 +182,22 @@ export class BrainOrchestrator {
           userId: 1,
           projectsDir: this.projectsDir,
           createTask: async (title, dueDate) => ({ id: 0, title: `${title}-${dueDate ?? "none"}` }),
+          createStudySession: async () => 0,
+          createTradeJournalEntry: async () => 0,
+          createWatchedAsset: async () => 0,
+          createTaxLienProperty: async () => 0,
+          createRecipe: async () => 0,
+          startLiveSession: async () => ({
+            id: 0,
+            user_id: 1,
+            session_type: "project",
+            status: "active",
+            current_step: 1,
+            notes: null,
+            started_at: new Date().toISOString(),
+            ended_at: null,
+          }),
+          stopLiveSession: async () => null,
         },
       }).map((agent) => ({ name: agent.name, description: agent.description })),
     );
@@ -135,6 +209,18 @@ export class BrainOrchestrator {
 
   isValidAgentName(agentName: string): agentName is AgentName {
     return Object.prototype.hasOwnProperty.call(this.registry, agentName);
+  }
+
+  async getActiveLiveSession(userId: number): Promise<LiveSession | null> {
+    return this.memory.getActiveLiveSession(userId);
+  }
+
+  async stopLiveSession(userId: number): Promise<LiveSession | null> {
+    return this.memory.stopLiveSession(userId, "Stopped from dashboard");
+  }
+
+  async startLiveSession(userId: number, sessionType: LiveSessionType, notes?: string): Promise<LiveSession> {
+    return this.memory.startLiveSession(userId, sessionType, notes);
   }
 
   async handleMessage(params: {
@@ -150,7 +236,36 @@ export class BrainOrchestrator {
     reason: string;
     response: string;
     toolResults: Array<{ tool: string; ok: boolean; summary: string }>;
+    activeLiveSession: LiveSession | null;
   }> {
+    const lowerInput = params.input.toLowerCase();
+    const conversationId =
+      params.conversationId ?? (await this.memory.createConversation(params.userId, params.input.slice(0, 80)));
+
+    await this.memory.addMessage(conversationId, "user", params.input);
+    await rememberImportantFacts(this.memory, params.userId, params.input);
+
+    const activeLiveSession = await this.memory.getActiveLiveSession(params.userId);
+    if (activeLiveSession && stopLiveCommands.some((command) => lowerInput.includes(command))) {
+      const stopped = await this.memory.stopLiveSession(params.userId, `Stopped by phrase: ${params.input}`);
+      const response = "Live session ended. I will wait for your next request.";
+      await this.memory.addMessage(conversationId, "assistant", response, "General Assistant Agent");
+      return {
+        conversationId,
+        selectedAgent: "General Assistant Agent",
+        reason: "Stop command received for active live session.",
+        response,
+        toolResults: [],
+        activeLiveSession: stopped,
+      };
+    }
+
+    let ensuredLiveSession = activeLiveSession;
+    const startType = detectLiveSessionStart(params.input);
+    if (!ensuredLiveSession && startType) {
+      ensuredLiveSession = await this.memory.startLiveSession(params.userId, startType, params.input);
+    }
+
     const explicitAgent =
       params.selectedAgent && this.isValidAgentName(params.selectedAgent) ? params.selectedAgent : undefined;
 
@@ -159,7 +274,12 @@ export class BrainOrchestrator {
           selectedAgent: explicitAgent,
           reason: "Agent explicitly selected by user.",
         }
-      : detectIntent(params.input);
+      : ensuredLiveSession
+        ? {
+            selectedAgent: liveAgentByType[ensuredLiveSession.session_type],
+            reason: `Active live session (${ensuredLiveSession.session_type}) is guiding routing.`,
+          }
+        : detectIntent(params.input);
 
     const decision =
       params.role === "child" && requestedDecision.selectedAgent !== "Family / Kids Agent"
@@ -169,10 +289,6 @@ export class BrainOrchestrator {
           }
         : requestedDecision;
 
-    const conversationId = params.conversationId ?? (await this.memory.createConversation(params.userId, params.input.slice(0, 80)));
-    await this.memory.addMessage(conversationId, "user", params.input);
-    await rememberImportantFacts(this.memory, params.userId, params.input);
-
     const runtimeRegistry = createAgentRegistry({
       tools: {
         userId: params.userId,
@@ -181,6 +297,15 @@ export class BrainOrchestrator {
           const task = await this.memory.createTask(params.userId, title, dueDate);
           return { id: task.id, title: task.title };
         },
+        createStudySession: async (subject, plan) => this.memory.createStudySession(params.userId, subject, plan),
+        createTradeJournalEntry: async (entry) => this.memory.createTradeJournalEntry(params.userId, entry),
+        createWatchedAsset: async (symbol, assetType, notes) =>
+          this.memory.createWatchedAsset(params.userId, symbol, assetType, notes),
+        createTaxLienProperty: async (propertyRef, county, notes) =>
+          this.memory.createTaxLienProperty(params.userId, propertyRef, county, notes),
+        createRecipe: async (recipeName, steps) => this.memory.createRecipe(params.userId, recipeName, steps),
+        startLiveSession: async (sessionType, notes) => this.memory.startLiveSession(params.userId, sessionType, notes),
+        stopLiveSession: async (notes) => this.memory.stopLiveSession(params.userId, notes),
       },
     });
 
@@ -190,9 +315,29 @@ export class BrainOrchestrator {
       mode: params.mode,
       role: params.role,
       conversationId,
+      liveSession: ensuredLiveSession
+        ? {
+            sessionType: ensuredLiveSession.session_type,
+            currentStep: ensuredLiveSession.current_step,
+          }
+        : undefined,
     });
 
-    await this.memory.addMessage(conversationId, "assistant", result.response, result.agent);
+    let liveSessionAfterResponse = await this.memory.getActiveLiveSession(params.userId);
+    if (liveSessionAfterResponse) {
+      liveSessionAfterResponse = await this.memory.advanceLiveSessionStep(
+        params.userId,
+        `Step ${liveSessionAfterResponse.current_step} completed for input: ${params.input}`,
+      );
+    }
+
+    const liveModeSuffix = liveSessionAfterResponse
+      ? `\n\n[Live Mode] ${liveSessionAfterResponse.session_type} session active. Next guidance step: ${liveSessionAfterResponse.current_step}.`
+      : "";
+
+    const finalResponse = `${result.response}${liveModeSuffix}`;
+
+    await this.memory.addMessage(conversationId, "assistant", finalResponse, result.agent);
 
     for (const toolResult of result.toolResults) {
       await this.memory.logToolCall({
@@ -209,12 +354,13 @@ export class BrainOrchestrator {
       conversationId,
       selectedAgent: result.agent,
       reason: decision.reason,
-      response: result.response,
+      response: finalResponse,
       toolResults: result.toolResults.map((item) => ({
         tool: item.tool,
         ok: item.ok,
         summary: item.summary,
       })),
+      activeLiveSession: liveSessionAfterResponse,
     };
   }
 }

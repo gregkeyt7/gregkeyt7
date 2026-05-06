@@ -1,11 +1,18 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { ToolExecutionResult, ToolName } from "@raelix/shared";
+import type { LiveSession, LiveSessionType, ToolExecutionResult, ToolName } from "@raelix/shared";
 
 export interface ToolRuntimeContext {
   userId: number;
   projectsDir: string;
   createTask: (title: string, dueDate: string | null) => Promise<{ id: number; title: string }>;
+  createStudySession: (subject: string, plan: string) => Promise<number>;
+  createTradeJournalEntry: (entry: string) => Promise<number>;
+  createWatchedAsset: (symbol: string, assetType: string, notes: string) => Promise<number>;
+  createTaxLienProperty: (propertyRef: string, county: string, notes: string) => Promise<number>;
+  createRecipe: (recipeName: string, steps: string) => Promise<number>;
+  startLiveSession: (sessionType: LiveSessionType, notes?: string) => Promise<LiveSession>;
+  stopLiveSession: (notes?: string) => Promise<LiveSession | null>;
 }
 
 export type ToolHandler = (input: string, context: ToolRuntimeContext) => Promise<ToolExecutionResult>;
@@ -24,6 +31,23 @@ const extractTitleAndDueDate = (input: string): { title: string; dueDate: string
     title: input.replace(/create|reminder|task|for tomorrow/gi, "").trim() || "Untitled task",
     dueDate,
   };
+};
+
+const parseLiveType = (input: string): LiveSessionType => {
+  const lower = input.toLowerCase();
+  if (lower.includes("cook") || lower.includes("kitchen")) {
+    return "cooking";
+  }
+  if (lower.includes("learn") || lower.includes("study") || lower.includes("education")) {
+    return "education";
+  }
+  if (lower.includes("workout")) {
+    return "workout";
+  }
+  if (lower.includes("code")) {
+    return "coding";
+  }
+  return "project";
 };
 
 export const toolRegistry: Record<ToolName, ToolHandler> = {
@@ -74,6 +98,68 @@ export const toolRegistry: Record<ToolName, ToolHandler> = {
   },
   bible_verse_lookup: async () =>
     mock("bible_verse_lookup", "Philippians 4:13 — I can do all things through Christ who strengthens me."),
+
+  create_quiz: async (input, context) => {
+    const sessionId = await context.createStudySession("General", `Quiz prep for: ${input}`);
+    return mock("create_quiz", `Quiz generated for topic: ${input}`, { sessionId, questions: 5 });
+  },
+  create_flashcards: async (input, context) => {
+    const sessionId = await context.createStudySession("General", `Flashcards for: ${input}`);
+    return mock("create_flashcards", `Flashcards created for: ${input}`, { sessionId, cards: 10 });
+  },
+  create_lesson_plan: async (input, context) => {
+    const sessionId = await context.createStudySession("General", `Lesson plan for: ${input}`);
+    return mock("create_lesson_plan", `Lesson plan drafted for: ${input}`, { sessionId });
+  },
+  calculate_position_size: async (input) => {
+    return mock(
+      "calculate_position_size",
+      "Position sizing calculated in mock mode with risk-first assumptions.",
+      { guidance: "Use 1-2% max account risk per trade, validate with broker rules." },
+    );
+  },
+  create_trade_journal_entry: async (input, context) => {
+    const entryId = await context.createTradeJournalEntry(input);
+    return mock("create_trade_journal_entry", "Trade journal entry saved.", { entryId });
+  },
+  generate_pine_script: async (input, context) => {
+    const fileName = `pine-strategy-${Date.now()}.pine`;
+    const target = path.join(context.projectsDir, fileName);
+    const template = `//@version=5\nstrategy(\"RAELIX Strategy\", overlay=true)\n// ${input}\nlongCondition = ta.crossover(ta.sma(close, 9), ta.sma(close, 21))\nif (longCondition)\n    strategy.entry(\"Long\", strategy.long)\n`;
+    await fs.mkdir(context.projectsDir, { recursive: true });
+    await fs.writeFile(target, template, "utf8");
+    return mock("generate_pine_script", `Pine Script template generated at ${target}`, { fileName });
+  },
+  create_backtest_plan: async (input) =>
+    mock("create_backtest_plan", `Backtest plan created for strategy: ${input}`, {
+      checklist: ["Define timeframe", "Set risk rules", "Run out-of-sample test"],
+    }),
+  analyze_tax_lien_property: async (input, context) => {
+    const propertyId = await context.createTaxLienProperty("Unknown parcel", "Unknown county", input);
+    return mock("analyze_tax_lien_property", "Tax lien property analysis draft saved.", { propertyId });
+  },
+  create_due_diligence_checklist: async (input) =>
+    mock("create_due_diligence_checklist", `Due diligence checklist generated for: ${input}`, {
+      items: ["Lien priority", "Redemption window", "Title issues", "County auction terms"],
+    }),
+  start_live_session: async (input, context) => {
+    const sessionType = parseLiveType(input);
+    const session = await context.startLiveSession(sessionType, input);
+    return mock("start_live_session", `Live ${sessionType} session started.`, { session });
+  },
+  stop_live_session: async (input, context) => {
+    const session = await context.stopLiveSession(input || "Stopped by user");
+    return mock("stop_live_session", session ? "Live session ended." : "No active live session to stop.", { session });
+  },
+  set_cooking_timer: async (input) => {
+    const match = input.match(/(\d+)/);
+    const minutes = match ? Number(match[1]) : 10;
+    return mock("set_cooking_timer", `Mock timer set for ${minutes} minutes.`, { minutes });
+  },
+  create_recipe_steps: async (input, context) => {
+    const recipeId = await context.createRecipe("RAELIX Recipe", input);
+    return mock("create_recipe_steps", "Recipe steps created for live cooking guidance.", { recipeId });
+  },
 };
 
 export const executeTool = async (
