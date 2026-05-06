@@ -1,0 +1,16 @@
+{
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  "files.exclude": {
+    "**/.DS_Store": true
+  },
+  "npm.packageManager": "npm",
+  "task.quickOpen.detail": true,
+  "terminal.integrated.defaultProfile.linux": "bash"
+}
