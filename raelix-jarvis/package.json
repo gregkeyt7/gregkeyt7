@@ -1,0 +1,20 @@
+{
+  "name": "raelix-jarvis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace @raelix/api\" \"npm run dev --workspace @raelix/web\"",
+    "dev:api": "npm run dev --workspace @raelix/api",
+    "dev:web": "npm run dev --workspace @raelix/web",
+    "build": "npm run build --workspace @raelix/api && npm run build --workspace @raelix/web",
+    "check": "npm run check --workspace @raelix/api && npm run check --workspace @raelix/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

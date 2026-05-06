@@ -1,0 +1,13 @@
+{
+  "name": "@raelix/memory",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@raelix/shared": "0.1.0",
+    "better-sqlite3": "^11.10.0"
+  }
+}
