@@ -62,7 +62,7 @@
     .tabs {
       display: grid;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(130px, 1fr);
+      grid-auto-columns: minmax(110px, max-content);
       gap: 8px;
       overflow-x: auto;
       padding-bottom: 2px;
@@ -76,7 +76,9 @@
       min-height: 42px;
       cursor: pointer;
       font-weight: 650;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.15;
+      text-align: center;
     }
     .tab-btn.active {
       border-color: rgba(56, 189, 248, 0.7);
@@ -160,6 +162,14 @@
       gap: 8px;
       align-items: center;
     }
+    .row > input,
+    .row > select {
+      flex: 1 1 220px;
+      min-width: 160px;
+    }
+    .row > .btn {
+      flex: 0 0 auto;
+    }
     .btn {
       border: 0;
       border-radius: 11px;
@@ -170,6 +180,8 @@
       background: linear-gradient(135deg, #6ee7b7, #34d399);
       font: inherit;
       font-weight: 700;
+      line-height: 1.15;
+      text-align: center;
     }
     .btn.secondary {
       color: #022b40;
@@ -300,6 +312,24 @@
     .toast.success { border-left-color: var(--accent); }
     .toast.warning { border-left-color: var(--warn); }
     .toast.error { border-left-color: var(--danger); }
+    @media (max-width: 700px) {
+      .tabs { grid-auto-columns: minmax(96px, max-content); }
+      .tab-btn { font-size: 0.8rem; padding: 8px 9px; }
+      .panel { padding: 12px; }
+      .row > input,
+      .row > select {
+        flex: 1 1 100%;
+        min-width: 0;
+      }
+      .row > .btn {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 120px;
+      }
+      .btn.small {
+        min-height: 34px;
+        padding: 7px 8px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -309,13 +339,13 @@
       <div class="sub">Mobile-first field CRM for Thomas, Donovan, and Jose</div>
       <nav class="tabs" id="tabNav">
         <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-        <button class="tab-btn" data-tab="customers">Customers / Jobs</button>
+        <button class="tab-btn" data-tab="customers" title="Customers / Jobs">Jobs</button>
         <button class="tab-btn" data-tab="roofing">Roofing</button>
         <button class="tab-btn" data-tab="exterior">Exterior</button>
         <button class="tab-btn" data-tab="interior">Interior</button>
-        <button class="tab-btn" data-tab="protection">Protection Plan</button>
-        <button class="tab-btn" data-tab="contacts">Professional Contacts</button>
-        <button class="tab-btn" data-tab="reports">Reports / Backup</button>
+        <button class="tab-btn" data-tab="protection" title="Protection Plan">Pro Plan</button>
+        <button class="tab-btn" data-tab="contacts" title="Professional Contacts">Contacts</button>
+        <button class="tab-btn" data-tab="reports" title="Reports / Backup">Backup</button>
       </nav>
     </header>
 
@@ -336,8 +366,8 @@
         <h2>Customers / Jobs</h2>
         <p class="hint">Replace lead tracking with a full customer/job workflow.</p>
         <div class="row" style="margin-bottom:10px;">
-          <button class="btn" id="customerAddBtn">+ Add Customer/Job</button>
-          <button class="btn ghost" id="customerViewToggleBtn">Switch to Card View</button>
+          <button class="btn" id="customerAddBtn">+ Add Job</button>
+          <button class="btn ghost" id="customerViewToggleBtn">Card View</button>
           <input id="customerSearch" placeholder="Search customer, phone, address, notes...">
           <select id="customerFilterCategory"><option value="all">All categories</option></select>
           <select id="customerFilterStatus"><option value="all">All statuses</option></select>
@@ -513,7 +543,7 @@
         <h2>Protection Plan</h2>
         <p class="hint">Property protection plans tracked separately from roofing jobs.</p>
         <div class="row" style="margin-bottom:10px;">
-          <button class="btn" id="planAddBtn">+ Add Protection Plan</button>
+          <button class="btn" id="planAddBtn">+ Add Plan</button>
           <input id="planSearch" placeholder="Search customer, address, notes...">
           <select id="planFilterStatus"><option value="all">All plan statuses</option></select>
         </div>
@@ -593,14 +623,14 @@
         <h2>Reports / Backup</h2>
         <p class="hint">Export CSV by table, export a full JSON backup, and import full JSON backups.</p>
         <div class="row" style="margin-bottom:10px;">
-          <button class="btn secondary" id="exportCustomersBtn">Export Customers/Jobs CSV</button>
-          <button class="btn ghost" id="exportContactsBtn">Export Professional Contacts CSV</button>
-          <button class="btn ghost" id="exportPlansBtn">Export Protection Plans CSV</button>
-          <button class="btn" id="exportFullJsonBtn">Export Full JSON Backup</button>
+          <button class="btn secondary" id="exportCustomersBtn">Export Jobs CSV</button>
+          <button class="btn ghost" id="exportContactsBtn">Export Contacts CSV</button>
+          <button class="btn ghost" id="exportPlansBtn">Export Plans CSV</button>
+          <button class="btn" id="exportFullJsonBtn">Full JSON Backup</button>
         </div>
         <div class="row">
           <input id="importJsonInput" type="file" accept=".json,application/json">
-          <button class="btn warn" id="importJsonBtn">Import JSON Backup</button>
+          <button class="btn warn" id="importJsonBtn">Import Backup</button>
         </div>
         <p class="hint" style="margin-top:10px;color:#f5d48b;">
           Import replaces all local data tables in this browser. Export first if you want a rollback file.
@@ -1281,7 +1311,7 @@
         $("customerCancelBtn").addEventListener("click", hideCustomerForm);
         $("customerViewToggleBtn").addEventListener("click", () => {
           state.customerView = state.customerView === "table" ? "cards" : "table";
-          $("customerViewToggleBtn").textContent = state.customerView === "table" ? "Switch to Card View" : "Switch to Table View";
+          $("customerViewToggleBtn").textContent = state.customerView === "table" ? "Card View" : "Table View";
           renderCustomers();
         });
         $("customerSearch").addEventListener("input", (e) => { state.customerFilters.search = e.target.value || ""; renderCustomers(); renderDashboard(); });
