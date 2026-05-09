@@ -777,10 +777,10 @@
             <div><label class="field-label">Water damage</label><input name="waterDamage"></div>
             <div>
               <label class="field-label">Mold concern</label>
-              <select name="moldConcern">
-                <option value="false">No</option>
-                <option value="true">Yes</option>
-              </select>
+              <label style="display:flex;align-items:center;gap:8px;min-height:42px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#0f141a;">
+                <input name="moldConcern" type="checkbox" style="width:auto;min-height:auto;">
+                <span>Yes, mold concern present</span>
+              </label>
             </div>
             <div><label class="field-label">Rooms affected</label><input name="roomsAffected"></div>
             <div><label class="field-label">Material estimate</label><input name="materialEstimate" type="number" min="0" step="0.01"></div>
@@ -1700,7 +1700,7 @@
           customer.interior.plumbing = toStringSafe(form.elements.plumbing.value);
           customer.interior.ceiling = toStringSafe(form.elements.ceiling.value);
           customer.interior.waterDamage = toStringSafe(form.elements.waterDamage.value);
-          customer.interior.moldConcern = boolFromValue(form.elements.moldConcern.value);
+          customer.interior.moldConcern = Boolean(form.elements.moldConcern.checked);
           customer.interior.roomsAffected = toStringSafe(form.elements.roomsAffected.value);
           customer.interior.materialEstimate = round2(toNumber(form.elements.materialEstimate.value));
           customer.interior.laborEstimate = round2(toNumber(form.elements.laborEstimate.value));
@@ -2163,7 +2163,7 @@
         form.elements.plumbing.value = toStringSafe(customer.interior.plumbing);
         form.elements.ceiling.value = toStringSafe(customer.interior.ceiling);
         form.elements.waterDamage.value = toStringSafe(customer.interior.waterDamage);
-        form.elements.moldConcern.value = boolFromValue(customer.interior.moldConcern) ? "true" : "false";
+        form.elements.moldConcern.checked = boolFromValue(customer.interior.moldConcern);
         form.elements.roomsAffected.value = toStringSafe(customer.interior.roomsAffected);
         form.elements.materialEstimate.value = round2(toNumber(customer.interior.materialEstimate));
         form.elements.laborEstimate.value = round2(toNumber(customer.interior.laborEstimate));
