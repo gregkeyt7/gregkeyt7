@@ -1,0 +1,2714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TKJ Field Tracker &amp; Client Cabinet</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1f2630;
+      --border: #2b3442;
+      --text: #e6edf3;
+      --muted: #98a6b8;
+      --accent: #2f81f7;
+      --accent-2: #238636;
+      --danger: #da3633;
+      --warning: #d29922;
+      --radius: 12px;
+      --shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.4;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(13, 17, 23, 0.96);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 12px 10px;
+    }
+
+    .title-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .tab-nav {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(120px, 1fr);
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 12px;
+      min-height: 42px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s ease;
+    }
+
+    .tab-btn:hover {
+      border-color: #3b4554;
+      background: #1c232e;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    main {
+      padding: 14px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tab-section {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .tab-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+
+    .panel-muted {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 4px 0 12px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      background: #0f141a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      min-height: 42px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(47, 129, 247, 0.2);
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 12px;
+      min-height: 42px;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: #3b4554;
+      opacity: 0.96;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-success {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      border-color: var(--warning);
+      color: #111;
+    }
+
+    .btn-small {
+      min-height: 34px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .field-label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #111821;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .summary-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .summary-card {
+      border: 1px solid var(--border);
+      background: #0f1620;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .summary-card .label {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      word-break: break-word;
+    }
+
+    .list-shell {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 840px;
+      background: #0f151d;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      padding: 9px;
+      vertical-align: top;
+      font-size: 0.88rem;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      background: #121a24;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover td {
+      background: #121a24;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-right: 6px;
+      margin-top: 4px;
+    }
+
+    .cards-wrap {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .job-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0f151d;
+      padding: 12px;
+    }
+
+    .job-card h4 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .job-card .meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-bottom: 8px;
+    }
+
+    .job-card .line {
+      font-size: 0.86rem;
+      margin: 3px 0;
+    }
+
+    .job-card .actions {
+      margin-top: 10px;
+    }
+
+    .meta-row {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+
+    .warning-text {
+      color: #ffd479;
+    }
+
+    #toastContainer {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 999;
+      max-width: min(94vw, 360px);
+    }
+
+    .toast {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      background: #111820;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+      font-size: 0.9rem;
+      animation: slideIn 0.2s ease;
+    }
+
+    .toast.success { border-left-color: var(--accent-2); }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.warning { border-left-color: var(--warning); }
+
+    @keyframes slideIn {
+      from { transform: translateY(6px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 760px) {
+      main { padding: 10px; }
+      .panel { padding: 12px; }
+      table { min-width: 660px; }
+      .tab-nav { grid-auto-columns: minmax(105px, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-wrap">
+      <div>
+        <h1>TKJ Field Tracker &amp; Client Cabinet</h1>
+        <div class="subtitle">Field CRM for Thomas, Donovan, and Jose</div>
+      </div>
+    </div>
+    <nav class="tab-nav" id="topTabs">
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="customers">Customers / Jobs</button>
+      <button class="tab-btn" data-tab="roofing">Roofing</button>
+      <button class="tab-btn" data-tab="exterior">Exterior</button>
+      <button class="tab-btn" data-tab="interior">Interior</button>
+      <button class="tab-btn" data-tab="protection">Protection Plan</button>
+      <button class="tab-btn" data-tab="contacts">Professional Contacts</button>
+      <button class="tab-btn" data-tab="reports">Reports / Backup</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-dashboard" class="tab-section active">
+      <div class="panel">
+        <h2>Dashboard Snapshot</h2>
+        <p class="panel-muted">Live metrics from all customers/jobs and protection plans.</p>
+        <div id="dashboardCards" class="summary-grid"></div>
+      </div>
+      <div class="panel">
+        <h3>Jobs by Category</h3>
+        <div id="dashboardCategoryCards" class="summary-grid"></div>
+      </div>
+    </section>
+
+    <section id="tab-customers" class="tab-section">
+      <div class="panel">
+        <h2>Customers / Jobs</h2>
+        <p class="panel-muted">Track every opportunity from first contact to completion.</p>
+
+        <div class="controls-row">
+          <button id="addCustomerBtn" class="btn btn-primary">Add Customer/Job</button>
+          <button id="toggleCustomerViewBtn" class="btn">Switch to Card View</button>
+          <input id="customerSearch" type="search" placeholder="Search customer, phone, address, notes...">
+          <select id="customerCategoryFilter">
+            <option value="all">All categories</option>
+          </select>
+          <select id="customerStatusFilter">
+            <option value="all">All statuses</option>
+          </select>
+          <select id="customerFollowupFilter">
+            <option value="all">All follow-ups</option>
+            <option value="dueToday">Due today</option>
+            <option value="overdue">Overdue</option>
+            <option value="open">Open upcoming</option>
+            <option value="none">No follow-up date</option>
+          </select>
+          <select id="customerSort">
+            <option value="newest">Sort: Newest</option>
+            <option value="oldest">Sort: Oldest</option>
+            <option value="highestAccepted">Sort: Highest accepted</option>
+            <option value="followupSoonest">Sort: Follow-up soonest</option>
+          </select>
+        </div>
+
+        <div id="customerFormWrap" class="panel hidden">
+          <h3 id="customerFormTitle">Add Customer/Job</h3>
+          <form id="customerForm">
+            <details open>
+              <summary>Contact + Property Info</summary>
+              <div class="form-grid">
+                <div>
+                  <label class="field-label">Date added</label>
+                  <input name="dateAdded" type="date" required>
+                </div>
+                <div>
+                  <label class="field-label">Customer name</label>
+                  <input name="customerName" required>
+                </div>
+                <div>
+                  <label class="field-label">Spouse/second contact name</label>
+                  <input name="secondContactName">
+                </div>
+                <div>
+                  <label class="field-label">Phone</label>
+                  <input name="phone">
+                </div>
+                <div>
+                  <label class="field-label">Alternate phone</label>
+                  <input name="altPhone">
+                </div>
+                <div>
+                  <label class="field-label">Email</label>
+                  <input name="email" type="email">
+                </div>
+                <div style="grid-column: span 2;">
+                  <label class="field-label">Property address</label>
+                  <input name="address">
+                </div>
+                <div>
+                  <label class="field-label">City</label>
+                  <input name="city">
+                </div>
+                <div>
+                  <label class="field-label">State</label>
+                  <input name="state">
+                </div>
+                <div>
+                  <label class="field-label">ZIP</label>
+                  <input name="zip">
+                </div>
+                <div>
+                  <label class="field-label">Source</label>
+                  <select name="source" required id="customerSourceInput"></select>
+                </div>
+                <div>
+                  <label class="field-label">Job category</label>
+                  <select name="jobCategory" required id="customerCategoryInput"></select>
+                </div>
+                <div>
+                  <label class="field-label">Job status</label>
+                  <select name="jobStatus" required id="customerStatusInput"></select>
+                </div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Insurance + Schedule</summary>
+              <div class="form-grid">
+                <div>
+                  <label class="field-label">Insurance claim?</label>
+                  <select name="insuranceClaim">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">Insurance carrier</label>
+                  <input name="insuranceCarrier">
+                </div>
+                <div>
+                  <label class="field-label">Claim number</label>
+                  <input name="claimNumber">
+                </div>
+                <div>
+                  <label class="field-label">Adjuster name</label>
+                  <input name="adjusterName">
+                </div>
+                <div>
+                  <label class="field-label">Adjuster phone</label>
+                  <input name="adjusterPhone">
+                </div>
+                <div>
+                  <label class="field-label">Follow-up date</label>
+                  <input name="followUpDate" type="date">
+                </div>
+                <div>
+                  <label class="field-label">Job scheduled date</label>
+                  <input name="jobScheduledDate" type="date">
+                </div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Financials</summary>
+              <div class="form-grid">
+                <div>
+                  <label class="field-label">Price quoted</label>
+                  <input name="priceQuoted" type="number" min="0" step="0.01">
+                </div>
+                <div>
+                  <label class="field-label">Price accepted</label>
+                  <input name="priceAccepted" type="number" min="0" step="0.01">
+                </div>
+                <div>
+                  <label class="field-label">Deposit collected</label>
+                  <input name="depositCollected" type="number" min="0" step="0.01">
+                </div>
+                <div>
+                  <label class="field-label">Amount paid</label>
+                  <input name="amountPaid" type="number" min="0" step="0.01">
+                </div>
+                <div>
+                  <label class="field-label">Tax percentage</label>
+                  <input name="taxPercentage" type="number" min="0" step="0.01">
+                </div>
+                <div>
+                  <label class="field-label">Tax reserve amount</label>
+                  <input id="calcTaxReserve" readonly>
+                </div>
+                <div>
+                  <label class="field-label">Estimated net after-tax reserve</label>
+                  <input id="calcNetAfterTaxReserve" readonly>
+                </div>
+                <div>
+                  <label class="field-label">Balance due</label>
+                  <input id="calcBalanceDue" readonly>
+                </div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Notes + Attachments Placeholder</summary>
+              <div class="form-grid">
+                <div style="grid-column: span 2;">
+                  <label class="field-label">Notes</label>
+                  <textarea name="notes"></textarea>
+                </div>
+                <div style="grid-column: span 2;">
+                  <label class="field-label">Photos/attachments placeholder field</label>
+                  <textarea name="attachmentsPlaceholder" placeholder="Future file/image references..."></textarea>
+                </div>
+              </div>
+            </details>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-success">Save Customer/Job</button>
+              <button type="button" id="cancelCustomerBtn" class="btn">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="customerMeta" class="meta-row"></div>
+        <div id="customerListContainer"></div>
+      </div>
+    </section>
+
+    <section id="tab-roofing" class="tab-section">
+      <div class="panel">
+        <h2>Roofing Tracking</h2>
+        <p class="panel-muted">Roof-specific details tied to customer/job records.</p>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">Select customer/job</label>
+            <select id="roofingCustomerSelect"></select>
+          </div>
+        </div>
+        <form id="roofingForm">
+          <div class="form-grid">
+            <div>
+              <label class="field-label">Roof type</label>
+              <select name="roofType" id="roofTypeSelect"></select>
+            </div>
+            <div>
+              <label class="field-label">Service type</label>
+              <select name="serviceType" id="roofServiceTypeSelect"></select>
+            </div>
+            <div>
+              <label class="field-label">Squares</label>
+              <input name="squares" type="number" min="0" step="0.01">
+            </div>
+            <div>
+              <label class="field-label">Pitch</label>
+              <input name="pitch">
+            </div>
+            <div>
+              <label class="field-label">Stories</label>
+              <input name="stories" type="number" min="0" step="1">
+            </div>
+            <div>
+              <label class="field-label">Shingle color</label>
+              <input name="shingleColor">
+            </div>
+            <div>
+              <label class="field-label">Material estimate</label>
+              <input name="materialEstimate" type="number" min="0" step="0.01">
+            </div>
+            <div>
+              <label class="field-label">Labor estimate</label>
+              <input name="laborEstimate" type="number" min="0" step="0.01">
+            </div>
+            <div>
+              <label class="field-label">Total roof estimate</label>
+              <input name="totalEstimate" readonly>
+            </div>
+            <div>
+              <label class="field-label">Roof status</label>
+              <input name="roofStatus">
+            </div>
+            <div style="grid-column: span 2;">
+              <label class="field-label">Damage notes</label>
+              <textarea name="damageNotes"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-success">Save Roofing Details</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="tab-exterior" class="tab-section">
+      <div class="panel">
+        <h2>Exterior Tracking</h2>
+        <p class="panel-muted">Siding and exterior scope details tied to customer/job records.</p>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">Select customer/job</label>
+            <select id="exteriorCustomerSelect"></select>
+          </div>
+        </div>
+        <form id="exteriorForm">
+          <div class="form-grid">
+            <div><label class="field-label">Siding</label><input name="siding"></div>
+            <div><label class="field-label">Fascia</label><input name="fascia"></div>
+            <div><label class="field-label">Soffit</label><input name="soffit"></div>
+            <div><label class="field-label">Gutters</label><input name="gutters"></div>
+            <div><label class="field-label">Windows</label><input name="windows"></div>
+            <div><label class="field-label">Doors</label><input name="doors"></div>
+            <div><label class="field-label">Trim</label><input name="trim"></div>
+            <div><label class="field-label">Painting</label><input name="painting"></div>
+            <div><label class="field-label">Storm damage</label><input name="stormDamage"></div>
+            <div><label class="field-label">Material estimate</label><input name="materialEstimate" type="number" min="0" step="0.01"></div>
+            <div><label class="field-label">Labor estimate</label><input name="laborEstimate" type="number" min="0" step="0.01"></div>
+            <div><label class="field-label">Total exterior estimate</label><input name="totalEstimate" readonly></div>
+            <div><label class="field-label">Exterior status</label><input name="exteriorStatus"></div>
+            <div style="grid-column: span 2;">
+              <label class="field-label">Measurement notes</label>
+              <textarea name="measurementNotes"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-success">Save Exterior Details</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="tab-interior" class="tab-section">
+      <div class="panel">
+        <h2>Interior Tracking</h2>
+        <p class="panel-muted">Interior damage and remodeling details tied to customer/job records.</p>
+        <div class="form-grid">
+          <div>
+            <label class="field-label">Select customer/job</label>
+            <select id="interiorCustomerSelect"></select>
+          </div>
+        </div>
+        <form id="interiorForm">
+          <div class="form-grid">
+            <div><label class="field-label">Drywall</label><input name="drywall"></div>
+            <div><label class="field-label">Paint</label><input name="paint"></div>
+            <div><label class="field-label">Flooring</label><input name="flooring"></div>
+            <div><label class="field-label">Cabinets</label><input name="cabinets"></div>
+            <div><label class="field-label">Trim</label><input name="trim"></div>
+            <div><label class="field-label">Electrical</label><input name="electrical"></div>
+            <div><label class="field-label">Plumbing</label><input name="plumbing"></div>
+            <div><label class="field-label">Ceiling</label><input name="ceiling"></div>
+            <div><label class="field-label">Water damage</label><input name="waterDamage"></div>
+            <div>
+              <label class="field-label">Mold concern</label>
+              <select name="moldConcern">
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </div>
+            <div><label class="field-label">Rooms affected</label><input name="roomsAffected"></div>
+            <div><label class="field-label">Material estimate</label><input name="materialEstimate" type="number" min="0" step="0.01"></div>
+            <div><label class="field-label">Labor estimate</label><input name="laborEstimate" type="number" min="0" step="0.01"></div>
+            <div><label class="field-label">Total interior estimate</label><input name="totalEstimate" readonly></div>
+            <div><label class="field-label">Interior status</label><input name="interiorStatus"></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-success">Save Interior Details</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="tab-protection" class="tab-section">
+      <div class="panel">
+        <h2>Protection Plan Manager</h2>
+        <p class="panel-muted">Property-wide plan tracking separate from roofing jobs.</p>
+        <div class="controls-row">
+          <button id="addPlanBtn" class="btn btn-primary">Add Protection Plan</button>
+          <input id="protectionSearch" type="search" placeholder="Search customer, address, notes...">
+          <select id="protectionStatusFilter">
+            <option value="all">All plan statuses</option>
+          </select>
+        </div>
+
+        <div id="protectionFormWrap" class="panel hidden">
+          <h3 id="protectionFormTitle">Add Protection Plan</h3>
+          <form id="protectionForm">
+            <div class="form-grid">
+              <div><label class="field-label">Customer name</label><input name="customerName" required></div>
+              <div><label class="field-label">Address</label><input name="address"></div>
+              <div><label class="field-label">Plan type</label><select name="planType" id="planTypeInput"></select></div>
+              <div><label class="field-label">Price per year</label><input name="pricePerYear" type="number" min="0" step="0.01"></div>
+              <div><label class="field-label">Start date</label><input name="startDate" type="date"></div>
+              <div><label class="field-label">Renewal date</label><input name="renewalDate" type="date"></div>
+              <div>
+                <label class="field-label">Paid?</label>
+                <select name="paid">
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+              <div><label class="field-label">First inspection date</label><input name="firstInspectionDate" type="date"></div>
+              <div><label class="field-label">Second inspection date</label><input name="secondInspectionDate" type="date"></div>
+              <div><label class="field-label">Renewal reminder</label><input name="renewalReminder" type="date"></div>
+              <div><label class="field-label">Plan status</label><select name="planStatus" id="planStatusInput"></select></div>
+              <div style="grid-column: span 2;">
+                <label class="field-label">Services included notes</label>
+                <textarea name="servicesIncludedNotes"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-success">Save Protection Plan</button>
+              <button type="button" id="cancelPlanBtn" class="btn">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="protectionMeta" class="meta-row"></div>
+        <div id="protectionListContainer"></div>
+      </div>
+    </section>
+
+    <section id="tab-contacts" class="tab-section">
+      <div class="panel">
+        <h2>Professional Contacts</h2>
+        <p class="panel-muted">Separate trade network list for subcontractors, adjusters, agents, and partners.</p>
+        <div class="controls-row">
+          <button id="addContactBtn" class="btn btn-primary">Add Contact</button>
+          <input id="contactSearch" type="search" placeholder="Search name, company, role, notes...">
+          <select id="contactRoleFilter">
+            <option value="all">All contact types</option>
+          </select>
+          <button id="exportContactsFromSectionBtn" class="btn">Export Contacts CSV</button>
+        </div>
+
+        <div id="contactFormWrap" class="panel hidden">
+          <h3 id="contactFormTitle">Add Professional Contact</h3>
+          <form id="contactForm">
+            <div class="form-grid">
+              <div><label class="field-label">Name</label><input name="name" required></div>
+              <div><label class="field-label">Company</label><input name="company"></div>
+              <div><label class="field-label">Role/type</label><select name="roleType" id="contactRoleInput"></select></div>
+              <div><label class="field-label">Phone</label><input name="phone"></div>
+              <div><label class="field-label">Email</label><input name="email" type="email"></div>
+              <div><label class="field-label">Website</label><input name="website" placeholder="https://"></div>
+              <div style="grid-column: span 2;"><label class="field-label">Address</label><input name="address"></div>
+              <div><label class="field-label">Service/trade</label><input name="serviceTrade"></div>
+              <div>
+                <label class="field-label">Rating (1-5)</label>
+                <select name="rating">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3" selected>3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+              </div>
+              <div><label class="field-label">Preferred contact method</label><input name="preferredContactMethod"></div>
+              <div><label class="field-label">Last contacted date</label><input name="lastContactedDate" type="date"></div>
+              <div><label class="field-label">Follow-up date</label><input name="followUpDate" type="date"></div>
+              <div style="grid-column: span 2;">
+                <label class="field-label">Notes</label>
+                <textarea name="notes"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-success">Save Contact</button>
+              <button type="button" id="cancelContactBtn" class="btn">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="contactMeta" class="meta-row"></div>
+        <div id="contactListContainer"></div>
+      </div>
+    </section>
+
+    <section id="tab-reports" class="tab-section">
+      <div class="panel">
+        <h2>Reports / Backup</h2>
+        <p class="panel-muted">Export CSV data, generate full JSON backups, and import a full backup file.</p>
+        <div class="controls-row">
+          <button id="exportCustomersCsvBtn" class="btn btn-primary">Export Customers/Jobs CSV</button>
+          <button id="exportContactsCsvBtn" class="btn">Export Professional Contacts CSV</button>
+          <button id="exportPlansCsvBtn" class="btn">Export Protection Plans CSV</button>
+          <button id="exportJsonBtn" class="btn btn-success">Export Full JSON Backup</button>
+        </div>
+        <div class="controls-row">
+          <input id="importJsonFile" type="file" accept=".json,application/json">
+          <button id="importJsonBtn" class="btn btn-warning">Import JSON Backup</button>
+        </div>
+        <p class="panel-muted warning-text">
+          Import replaces current in-browser data tables (customers/jobs, contacts, and protection plans). Export first if you want a safety backup.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toastContainer"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEYS = {
+        customers: "tkjFieldTracker_customers_v1",
+        contacts: "tkjFieldTracker_contacts_v1",
+        protectionPlans: "tkjFieldTracker_protectionPlans_v1",
+        legacyLeads: "roofingFieldTrackerLeads_v2"
+      };
+
+      const SOURCE_OPTIONS = [
+        "Door knock",
+        "Facebook",
+        "Referral",
+        "Realtor",
+        "Insurance",
+        "Repeat customer",
+        "Other"
+      ];
+
+      const JOB_CATEGORY_OPTIONS = [
+        "Roofing",
+        "Siding",
+        "Exterior Damage",
+        "Interior Damage",
+        "Protection Plan",
+        "General Construction"
+      ];
+
+      const JOB_STATUS_OPTIONS = [
+        "New Lead",
+        "Inspection Scheduled",
+        "Estimate Sent",
+        "Waiting on Customer",
+        "Accepted",
+        "Scheduled",
+        "In Progress",
+        "Completed",
+        "Lost",
+        "Follow-up Later"
+      ];
+
+      const ROOF_TYPE_OPTIONS = ["Shingle", "Metal", "Flat", "Tile", "Other"];
+      const ROOF_SERVICE_OPTIONS = ["Full replacement", "Repair", "Single shingles", "Tarp", "Inspection", "Other"];
+
+      const CONTACT_ROLE_OPTIONS = [
+        "Subcontractor",
+        "Insurance Agent",
+        "Adjuster",
+        "Realtor",
+        "Supplier",
+        "Investor",
+        "Customer Referral Partner",
+        "Other"
+      ];
+
+      const PLAN_TYPE_OPTIONS = ["Roof Only", "Exterior Only", "Full Property Protection"];
+      const PLAN_STATUS_OPTIONS = ["Active", "Expired", "Cancelled", "Needs Follow-up"];
+
+      const state = {
+        activeTab: "dashboard",
+        customers: [],
+        contacts: [],
+        protectionPlans: [],
+        customerView: "table",
+        customerFilters: {
+          search: "",
+          category: "all",
+          status: "all",
+          followup: "all",
+          sort: "newest"
+        },
+        contactFilters: {
+          search: "",
+          role: "all"
+        },
+        protectionFilters: {
+          search: "",
+          status: "all"
+        },
+        editingCustomerId: null,
+        editingContactId: null,
+        editingPlanId: null,
+        selectedRoofingCustomerId: "",
+        selectedExteriorCustomerId: "",
+        selectedInteriorCustomerId: "",
+        migratedLegacyCount: 0
+      };
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function todayISO() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function formatMoney(value) {
+        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(toNumber(value));
+      }
+
+      function toNumber(value) {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : 0;
+      }
+
+      function round2(value) {
+        return Math.round(toNumber(value) * 100) / 100;
+      }
+
+      function toStringSafe(value) {
+        if (value === null || value === undefined) return "";
+        return String(value).trim();
+      }
+
+      function boolFromValue(value) {
+        if (typeof value === "boolean") return value;
+        const str = toStringSafe(value).toLowerCase();
+        return str === "true" || str === "yes" || str === "1" || str === "y";
+      }
+
+      function generateId(prefix) {
+        return prefix + "_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+      }
+
+      function createEmptyCustomer() {
+        return {
+          id: generateId("cust"),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          dateAdded: todayISO(),
+          customerName: "",
+          secondContactName: "",
+          phone: "",
+          altPhone: "",
+          email: "",
+          address: "",
+          city: "",
+          state: "",
+          zip: "",
+          source: SOURCE_OPTIONS[0],
+          jobCategory: JOB_CATEGORY_OPTIONS[0],
+          jobStatus: JOB_STATUS_OPTIONS[0],
+          insuranceClaim: false,
+          insuranceCarrier: "",
+          claimNumber: "",
+          adjusterName: "",
+          adjusterPhone: "",
+          priceQuoted: 0,
+          priceAccepted: 0,
+          depositCollected: 0,
+          amountPaid: 0,
+          balanceDue: 0,
+          taxPercentage: 25,
+          taxReserve: 0,
+          netAfterTaxReserve: 0,
+          followUpDate: "",
+          jobScheduledDate: "",
+          notes: "",
+          attachmentsPlaceholder: "",
+          roofing: {
+            roofType: ROOF_TYPE_OPTIONS[0],
+            serviceType: ROOF_SERVICE_OPTIONS[0],
+            squares: 0,
+            pitch: "",
+            stories: 0,
+            damageNotes: "",
+            shingleColor: "",
+            materialEstimate: 0,
+            laborEstimate: 0,
+            totalEstimate: 0,
+            roofStatus: ""
+          },
+          exterior: {
+            siding: "",
+            fascia: "",
+            soffit: "",
+            gutters: "",
+            windows: "",
+            doors: "",
+            trim: "",
+            painting: "",
+            stormDamage: "",
+            measurementNotes: "",
+            materialEstimate: 0,
+            laborEstimate: 0,
+            totalEstimate: 0,
+            exteriorStatus: ""
+          },
+          interior: {
+            drywall: "",
+            paint: "",
+            flooring: "",
+            cabinets: "",
+            trim: "",
+            electrical: "",
+            plumbing: "",
+            ceiling: "",
+            waterDamage: "",
+            moldConcern: false,
+            roomsAffected: "",
+            materialEstimate: 0,
+            laborEstimate: 0,
+            totalEstimate: 0,
+            interiorStatus: ""
+          }
+        };
+      }
+
+      function createEmptyContact() {
+        return {
+          id: generateId("contact"),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          name: "",
+          company: "",
+          roleType: CONTACT_ROLE_OPTIONS[0],
+          phone: "",
+          email: "",
+          website: "",
+          address: "",
+          serviceTrade: "",
+          notes: "",
+          rating: 3,
+          preferredContactMethod: "",
+          lastContactedDate: "",
+          followUpDate: ""
+        };
+      }
+
+      function createEmptyPlan() {
+        return {
+          id: generateId("plan"),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          customerName: "",
+          address: "",
+          planType: PLAN_TYPE_OPTIONS[0],
+          pricePerYear: 249,
+          startDate: "",
+          renewalDate: "",
+          paid: false,
+          firstInspectionDate: "",
+          secondInspectionDate: "",
+          servicesIncludedNotes: "",
+          renewalReminder: "",
+          planStatus: PLAN_STATUS_OPTIONS[0]
+        };
+      }
+
+      function populateSelect(selectElement, options, includeAllOption, allLabel) {
+        if (!selectElement) return;
+        const fragments = [];
+        if (includeAllOption) {
+          fragments.push('<option value="all">' + allLabel + "</option>");
+        }
+        options.forEach(function (opt) {
+          fragments.push('<option value="' + escapeAttr(opt) + '">' + escapeHtml(opt) + "</option>");
+        });
+        selectElement.innerHTML = fragments.join("");
+      }
+
+      function normalizeFromList(value, options, fallbackValue) {
+        const raw = toStringSafe(value);
+        if (!raw) return fallbackValue;
+        const found = options.find(function (opt) {
+          return opt.toLowerCase() === raw.toLowerCase();
+        });
+        return found || fallbackValue;
+      }
+
+      function recalcCustomerFinancials(customer) {
+        const accepted = toNumber(customer.priceAccepted);
+        const taxPct = toNumber(customer.taxPercentage);
+        const deposit = toNumber(customer.depositCollected);
+        const paid = toNumber(customer.amountPaid);
+        customer.taxReserve = round2((accepted * taxPct) / 100);
+        customer.netAfterTaxReserve = round2(accepted - customer.taxReserve);
+        customer.balanceDue = round2(accepted - deposit - paid);
+      }
+
+      function recalcRoofingTotals(roofing) {
+        roofing.totalEstimate = round2(toNumber(roofing.materialEstimate) + toNumber(roofing.laborEstimate));
+      }
+
+      function recalcExteriorTotals(exterior) {
+        exterior.totalEstimate = round2(toNumber(exterior.materialEstimate) + toNumber(exterior.laborEstimate));
+      }
+
+      function recalcInteriorTotals(interior) {
+        interior.totalEstimate = round2(toNumber(interior.materialEstimate) + toNumber(interior.laborEstimate));
+      }
+
+      function hydrateCustomer(raw) {
+        const base = createEmptyCustomer();
+        const customer = Object.assign({}, base, raw || {});
+        customer.roofing = Object.assign({}, base.roofing, raw && raw.roofing ? raw.roofing : {});
+        customer.exterior = Object.assign({}, base.exterior, raw && raw.exterior ? raw.exterior : {});
+        customer.interior = Object.assign({}, base.interior, raw && raw.interior ? raw.interior : {});
+
+        customer.dateAdded = toStringSafe(customer.dateAdded) || todayISO();
+        customer.customerName = toStringSafe(customer.customerName);
+        customer.secondContactName = toStringSafe(customer.secondContactName);
+        customer.phone = toStringSafe(customer.phone);
+        customer.altPhone = toStringSafe(customer.altPhone);
+        customer.email = toStringSafe(customer.email);
+        customer.address = toStringSafe(customer.address);
+        customer.city = toStringSafe(customer.city);
+        customer.state = toStringSafe(customer.state);
+        customer.zip = toStringSafe(customer.zip);
+        customer.source = normalizeFromList(customer.source, SOURCE_OPTIONS, SOURCE_OPTIONS[0]);
+        customer.jobCategory = normalizeFromList(customer.jobCategory, JOB_CATEGORY_OPTIONS, JOB_CATEGORY_OPTIONS[0]);
+        customer.jobStatus = normalizeFromList(customer.jobStatus, JOB_STATUS_OPTIONS, JOB_STATUS_OPTIONS[0]);
+        customer.insuranceClaim = boolFromValue(customer.insuranceClaim);
+        customer.insuranceCarrier = toStringSafe(customer.insuranceCarrier);
+        customer.claimNumber = toStringSafe(customer.claimNumber);
+        customer.adjusterName = toStringSafe(customer.adjusterName);
+        customer.adjusterPhone = toStringSafe(customer.adjusterPhone);
+        customer.priceQuoted = round2(toNumber(customer.priceQuoted));
+        customer.priceAccepted = round2(toNumber(customer.priceAccepted));
+        customer.depositCollected = round2(toNumber(customer.depositCollected));
+        customer.amountPaid = round2(toNumber(customer.amountPaid));
+        customer.taxPercentage = round2(toNumber(customer.taxPercentage || 25));
+        customer.followUpDate = toStringSafe(customer.followUpDate);
+        customer.jobScheduledDate = toStringSafe(customer.jobScheduledDate);
+        customer.notes = toStringSafe(customer.notes);
+        customer.attachmentsPlaceholder = toStringSafe(customer.attachmentsPlaceholder);
+
+        customer.roofing.roofType = normalizeFromList(customer.roofing.roofType, ROOF_TYPE_OPTIONS, ROOF_TYPE_OPTIONS[0]);
+        customer.roofing.serviceType = normalizeFromList(customer.roofing.serviceType, ROOF_SERVICE_OPTIONS, ROOF_SERVICE_OPTIONS[0]);
+        customer.roofing.squares = round2(toNumber(customer.roofing.squares));
+        customer.roofing.stories = Math.max(0, Math.round(toNumber(customer.roofing.stories)));
+        customer.roofing.materialEstimate = round2(toNumber(customer.roofing.materialEstimate));
+        customer.roofing.laborEstimate = round2(toNumber(customer.roofing.laborEstimate));
+        customer.roofing.damageNotes = toStringSafe(customer.roofing.damageNotes);
+        recalcRoofingTotals(customer.roofing);
+
+        customer.exterior.materialEstimate = round2(toNumber(customer.exterior.materialEstimate));
+        customer.exterior.laborEstimate = round2(toNumber(customer.exterior.laborEstimate));
+        recalcExteriorTotals(customer.exterior);
+
+        customer.interior.moldConcern = boolFromValue(customer.interior.moldConcern);
+        customer.interior.materialEstimate = round2(toNumber(customer.interior.materialEstimate));
+        customer.interior.laborEstimate = round2(toNumber(customer.interior.laborEstimate));
+        recalcInteriorTotals(customer.interior);
+
+        recalcCustomerFinancials(customer);
+        return customer;
+      }
+
+      function hydrateContact(raw) {
+        const base = createEmptyContact();
+        const contact = Object.assign({}, base, raw || {});
+        contact.name = toStringSafe(contact.name);
+        contact.company = toStringSafe(contact.company);
+        contact.roleType = normalizeFromList(contact.roleType, CONTACT_ROLE_OPTIONS, CONTACT_ROLE_OPTIONS[0]);
+        contact.phone = toStringSafe(contact.phone);
+        contact.email = toStringSafe(contact.email);
+        contact.website = toStringSafe(contact.website);
+        contact.address = toStringSafe(contact.address);
+        contact.serviceTrade = toStringSafe(contact.serviceTrade);
+        contact.notes = toStringSafe(contact.notes);
+        const rating = Math.round(toNumber(contact.rating));
+        contact.rating = Math.min(5, Math.max(1, rating || 3));
+        contact.preferredContactMethod = toStringSafe(contact.preferredContactMethod);
+        contact.lastContactedDate = toStringSafe(contact.lastContactedDate);
+        contact.followUpDate = toStringSafe(contact.followUpDate);
+        return contact;
+      }
+
+      function hydratePlan(raw) {
+        const base = createEmptyPlan();
+        const plan = Object.assign({}, base, raw || {});
+        plan.customerName = toStringSafe(plan.customerName);
+        plan.address = toStringSafe(plan.address);
+        plan.planType = normalizeFromList(plan.planType, PLAN_TYPE_OPTIONS, PLAN_TYPE_OPTIONS[0]);
+        plan.pricePerYear = round2(toNumber(plan.pricePerYear || 249));
+        plan.startDate = toStringSafe(plan.startDate);
+        plan.renewalDate = toStringSafe(plan.renewalDate);
+        plan.paid = boolFromValue(plan.paid);
+        plan.firstInspectionDate = toStringSafe(plan.firstInspectionDate);
+        plan.secondInspectionDate = toStringSafe(plan.secondInspectionDate);
+        plan.servicesIncludedNotes = toStringSafe(plan.servicesIncludedNotes);
+        plan.renewalReminder = toStringSafe(plan.renewalReminder);
+        plan.planStatus = normalizeFromList(plan.planStatus, PLAN_STATUS_OPTIONS, PLAN_STATUS_OPTIONS[0]);
+        return plan;
+      }
+
+      function safeReadArray(storageKey) {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+          console.error("Failed reading key", storageKey, err);
+          return [];
+        }
+      }
+
+      function saveCustomers() {
+        localStorage.setItem(STORAGE_KEYS.customers, JSON.stringify(state.customers));
+      }
+
+      function saveContacts() {
+        localStorage.setItem(STORAGE_KEYS.contacts, JSON.stringify(state.contacts));
+      }
+
+      function savePlans() {
+        localStorage.setItem(STORAGE_KEYS.protectionPlans, JSON.stringify(state.protectionPlans));
+      }
+
+      function migrateLegacyLeads() {
+        if (state.customers.length > 0) return;
+        const legacyRaw = localStorage.getItem(STORAGE_KEYS.legacyLeads);
+        if (!legacyRaw) return;
+        let legacyLeads = [];
+        try {
+          const parsed = JSON.parse(legacyRaw);
+          if (Array.isArray(parsed)) {
+            legacyLeads = parsed;
+          }
+        } catch (err) {
+          console.error("Failed to parse legacy data:", err);
+        }
+        if (legacyLeads.length < 1) return;
+        const migrated = legacyLeads.map(function (lead) {
+          return migrateLegacyLeadRecord(lead);
+        }).filter(function (customer) {
+          return customer.customerName || customer.phone || customer.address || customer.notes;
+        });
+        if (migrated.length > 0) {
+          state.customers = migrated;
+          state.migratedLegacyCount = migrated.length;
+          saveCustomers();
+        }
+      }
+
+      function migrateLegacyLeadRecord(lead) {
+        const sourceLead = lead || {};
+        const c = createEmptyCustomer();
+        c.id = toStringSafe(sourceLead.id) || generateId("cust");
+        c.createdAt = toStringSafe(sourceLead.createdAt) || new Date().toISOString();
+        c.updatedAt = new Date().toISOString();
+        c.dateAdded = toStringSafe(sourceLead.dateAdded || sourceLead.date || sourceLead.createdDate) || todayISO();
+        c.customerName = toStringSafe(sourceLead.customerName || sourceLead.name || sourceLead.leadName);
+        c.secondContactName = toStringSafe(sourceLead.secondContactName || sourceLead.spouse || sourceLead.spouseName);
+        c.phone = toStringSafe(sourceLead.phone || sourceLead.phoneNumber);
+        c.altPhone = toStringSafe(sourceLead.altPhone || sourceLead.altPhoneNumber);
+        c.email = toStringSafe(sourceLead.email);
+        c.address = toStringSafe(sourceLead.address || sourceLead.propertyAddress);
+        c.city = toStringSafe(sourceLead.city);
+        c.state = toStringSafe(sourceLead.state);
+        c.zip = toStringSafe(sourceLead.zip || sourceLead.postalCode);
+        c.source = normalizeFromList(sourceLead.source, SOURCE_OPTIONS, SOURCE_OPTIONS[0]);
+        c.jobCategory = normalizeFromList(sourceLead.jobCategory || sourceLead.category || "Roofing", JOB_CATEGORY_OPTIONS, "Roofing");
+        c.jobStatus = normalizeFromList(sourceLead.jobStatus || sourceLead.status || sourceLead.stage || "New Lead", JOB_STATUS_OPTIONS, "New Lead");
+        c.insuranceClaim = boolFromValue(sourceLead.insuranceClaim || sourceLead.insurance);
+        c.insuranceCarrier = toStringSafe(sourceLead.insuranceCarrier);
+        c.claimNumber = toStringSafe(sourceLead.claimNumber);
+        c.adjusterName = toStringSafe(sourceLead.adjusterName);
+        c.adjusterPhone = toStringSafe(sourceLead.adjusterPhone);
+        c.priceQuoted = round2(toNumber(sourceLead.priceQuoted || sourceLead.quote || sourceLead.estimate));
+        c.priceAccepted = round2(toNumber(sourceLead.priceAccepted || sourceLead.acceptedPrice || sourceLead.contractValue));
+        c.depositCollected = round2(toNumber(sourceLead.depositCollected || sourceLead.deposit));
+        c.amountPaid = round2(toNumber(sourceLead.amountPaid || sourceLead.paid));
+        c.taxPercentage = round2(toNumber(sourceLead.taxPercentage || 25));
+        c.followUpDate = toStringSafe(sourceLead.followUpDate || sourceLead.followUp);
+        c.jobScheduledDate = toStringSafe(sourceLead.jobScheduledDate || sourceLead.scheduledDate);
+        c.notes = toStringSafe(sourceLead.notes || sourceLead.damageNotes);
+        c.attachmentsPlaceholder = toStringSafe(sourceLead.attachmentsPlaceholder || sourceLead.photos);
+        c.roofing.roofType = normalizeFromList(sourceLead.roofType, ROOF_TYPE_OPTIONS, ROOF_TYPE_OPTIONS[0]);
+        c.roofing.serviceType = normalizeFromList(sourceLead.serviceType, ROOF_SERVICE_OPTIONS, ROOF_SERVICE_OPTIONS[0]);
+        c.roofing.squares = round2(toNumber(sourceLead.squares));
+        c.roofing.pitch = toStringSafe(sourceLead.pitch);
+        c.roofing.stories = Math.round(toNumber(sourceLead.stories));
+        c.roofing.damageNotes = toStringSafe(sourceLead.damageNotes);
+        c.roofing.shingleColor = toStringSafe(sourceLead.shingleColor);
+        c.roofing.materialEstimate = round2(toNumber(sourceLead.materialEstimate));
+        c.roofing.laborEstimate = round2(toNumber(sourceLead.laborEstimate));
+        recalcRoofingTotals(c.roofing);
+        c.roofing.roofStatus = toStringSafe(sourceLead.roofStatus);
+        recalcCustomerFinancials(c);
+        return hydrateCustomer(c);
+      }
+
+      function init() {
+        setupStaticOptions();
+        loadData();
+        bindGlobalEvents();
+        renderAll();
+        if (state.migratedLegacyCount > 0) {
+          showToast("Migrated " + state.migratedLegacyCount + " legacy Roofing Field Tracker leads.", "success");
+        }
+      }
+
+      function setupStaticOptions() {
+        populateSelect(byId("customerSourceInput"), SOURCE_OPTIONS, false);
+        populateSelect(byId("customerCategoryInput"), JOB_CATEGORY_OPTIONS, false);
+        populateSelect(byId("customerStatusInput"), JOB_STATUS_OPTIONS, false);
+        populateSelect(byId("customerCategoryFilter"), JOB_CATEGORY_OPTIONS, true, "All categories");
+        populateSelect(byId("customerStatusFilter"), JOB_STATUS_OPTIONS, true, "All statuses");
+
+        populateSelect(byId("roofTypeSelect"), ROOF_TYPE_OPTIONS, false);
+        populateSelect(byId("roofServiceTypeSelect"), ROOF_SERVICE_OPTIONS, false);
+
+        populateSelect(byId("contactRoleInput"), CONTACT_ROLE_OPTIONS, false);
+        populateSelect(byId("contactRoleFilter"), CONTACT_ROLE_OPTIONS, true, "All contact types");
+
+        populateSelect(byId("planTypeInput"), PLAN_TYPE_OPTIONS, false);
+        populateSelect(byId("planStatusInput"), PLAN_STATUS_OPTIONS, false);
+        populateSelect(byId("protectionStatusFilter"), PLAN_STATUS_OPTIONS, true, "All plan statuses");
+      }
+
+      function loadData() {
+        state.customers = safeReadArray(STORAGE_KEYS.customers).map(hydrateCustomer);
+        state.contacts = safeReadArray(STORAGE_KEYS.contacts).map(hydrateContact);
+        state.protectionPlans = safeReadArray(STORAGE_KEYS.protectionPlans).map(hydratePlan);
+        migrateLegacyLeads();
+      }
+
+      function bindGlobalEvents() {
+        const tabs = document.querySelectorAll(".tab-btn");
+        tabs.forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            setActiveTab(tab.getAttribute("data-tab"));
+          });
+        });
+
+        bindCustomerEvents();
+        bindRoofingEvents();
+        bindExteriorEvents();
+        bindInteriorEvents();
+        bindProtectionEvents();
+        bindContactEvents();
+        bindReportEvents();
+      }
+
+      function setActiveTab(tabName) {
+        state.activeTab = tabName;
+        document.querySelectorAll(".tab-btn").forEach(function (btn) {
+          btn.classList.toggle("active", btn.getAttribute("data-tab") === tabName);
+        });
+        document.querySelectorAll(".tab-section").forEach(function (sec) {
+          sec.classList.toggle("active", sec.id === "tab-" + tabName);
+        });
+      }
+
+      function bindCustomerEvents() {
+        byId("addCustomerBtn").addEventListener("click", function () {
+          state.editingCustomerId = null;
+          showCustomerForm(createEmptyCustomer());
+        });
+
+        byId("cancelCustomerBtn").addEventListener("click", function () {
+          hideCustomerForm();
+        });
+
+        byId("customerForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          saveCustomerFromForm();
+        });
+
+        ["priceAccepted", "taxPercentage", "depositCollected", "amountPaid"].forEach(function (name) {
+          const input = byId("customerForm").elements[name];
+          if (input) {
+            input.addEventListener("input", updateCustomerFinancialPreview);
+          }
+        });
+
+        byId("customerSearch").addEventListener("input", function (event) {
+          state.customerFilters.search = event.target.value || "";
+          renderCustomerList();
+          renderDashboard();
+        });
+
+        byId("customerCategoryFilter").addEventListener("change", function (event) {
+          state.customerFilters.category = event.target.value;
+          renderCustomerList();
+        });
+
+        byId("customerStatusFilter").addEventListener("change", function (event) {
+          state.customerFilters.status = event.target.value;
+          renderCustomerList();
+        });
+
+        byId("customerFollowupFilter").addEventListener("change", function (event) {
+          state.customerFilters.followup = event.target.value;
+          renderCustomerList();
+        });
+
+        byId("customerSort").addEventListener("change", function (event) {
+          state.customerFilters.sort = event.target.value;
+          renderCustomerList();
+        });
+
+        byId("toggleCustomerViewBtn").addEventListener("click", function () {
+          state.customerView = state.customerView === "table" ? "cards" : "table";
+          byId("toggleCustomerViewBtn").textContent = state.customerView === "table"
+            ? "Switch to Card View"
+            : "Switch to Table View";
+          renderCustomerList();
+        });
+
+        byId("customerListContainer").addEventListener("click", function (event) {
+          const button = event.target.closest("button[data-action]");
+          if (!button) return;
+          const action = button.getAttribute("data-action");
+          const id = button.getAttribute("data-id");
+          const customer = state.customers.find(function (row) { return row.id === id; });
+          if (!customer) return;
+
+          if (action === "edit") {
+            state.editingCustomerId = customer.id;
+            showCustomerForm(customer);
+            setActiveTab("customers");
+            return;
+          }
+          if (action === "delete") {
+            if (!confirm("Delete customer/job for " + customer.customerName + "?")) return;
+            state.customers = state.customers.filter(function (row) { return row.id !== customer.id; });
+            saveCustomers();
+            renderAll();
+            showToast("Customer/job deleted.", "warning");
+            return;
+          }
+          if (action === "duplicate") {
+            const clone = hydrateCustomer(customer);
+            clone.id = generateId("cust");
+            clone.customerName = (clone.customerName || "Customer") + " (Copy)";
+            clone.dateAdded = todayISO();
+            clone.createdAt = new Date().toISOString();
+            clone.updatedAt = new Date().toISOString();
+            state.customers.unshift(clone);
+            saveCustomers();
+            renderAll();
+            showToast("Customer/job duplicated.", "success");
+            return;
+          }
+          if (action === "scope") {
+            jumpToCategoryScope(customer);
+          }
+        });
+      }
+
+      function jumpToCategoryScope(customer) {
+        const cat = customer.jobCategory;
+        if (cat === "Roofing") {
+          state.selectedRoofingCustomerId = customer.id;
+          renderScopeSelectors();
+          loadRoofingFormForSelected();
+          setActiveTab("roofing");
+          return;
+        }
+        if (cat === "Siding" || cat === "Exterior Damage") {
+          state.selectedExteriorCustomerId = customer.id;
+          renderScopeSelectors();
+          loadExteriorFormForSelected();
+          setActiveTab("exterior");
+          return;
+        }
+        if (cat === "Interior Damage") {
+          state.selectedInteriorCustomerId = customer.id;
+          renderScopeSelectors();
+          loadInteriorFormForSelected();
+          setActiveTab("interior");
+          return;
+        }
+        setActiveTab("customers");
+      }
+
+      function bindRoofingEvents() {
+        byId("roofingCustomerSelect").addEventListener("change", function (event) {
+          state.selectedRoofingCustomerId = event.target.value || "";
+          loadRoofingFormForSelected();
+        });
+        byId("roofingForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          const customer = state.customers.find(function (row) { return row.id === state.selectedRoofingCustomerId; });
+          if (!customer) {
+            showToast("Select a customer/job first.", "warning");
+            return;
+          }
+          const form = byId("roofingForm");
+          customer.roofing.roofType = form.elements.roofType.value;
+          customer.roofing.serviceType = form.elements.serviceType.value;
+          customer.roofing.squares = round2(toNumber(form.elements.squares.value));
+          customer.roofing.pitch = toStringSafe(form.elements.pitch.value);
+          customer.roofing.stories = Math.max(0, Math.round(toNumber(form.elements.stories.value)));
+          customer.roofing.damageNotes = toStringSafe(form.elements.damageNotes.value);
+          customer.roofing.shingleColor = toStringSafe(form.elements.shingleColor.value);
+          customer.roofing.materialEstimate = round2(toNumber(form.elements.materialEstimate.value));
+          customer.roofing.laborEstimate = round2(toNumber(form.elements.laborEstimate.value));
+          recalcRoofingTotals(customer.roofing);
+          customer.roofing.roofStatus = toStringSafe(form.elements.roofStatus.value);
+          customer.updatedAt = new Date().toISOString();
+          form.elements.totalEstimate.value = customer.roofing.totalEstimate.toFixed(2);
+          saveCustomers();
+          renderDashboard();
+          renderCustomerList();
+          showToast("Roofing details saved.", "success");
+        });
+        ["materialEstimate", "laborEstimate"].forEach(function (fieldName) {
+          byId("roofingForm").elements[fieldName].addEventListener("input", function () {
+            const form = byId("roofingForm");
+            const total = round2(toNumber(form.elements.materialEstimate.value) + toNumber(form.elements.laborEstimate.value));
+            form.elements.totalEstimate.value = total.toFixed(2);
+          });
+        });
+      }
+
+      function bindExteriorEvents() {
+        byId("exteriorCustomerSelect").addEventListener("change", function (event) {
+          state.selectedExteriorCustomerId = event.target.value || "";
+          loadExteriorFormForSelected();
+        });
+        byId("exteriorForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          const customer = state.customers.find(function (row) { return row.id === state.selectedExteriorCustomerId; });
+          if (!customer) {
+            showToast("Select a customer/job first.", "warning");
+            return;
+          }
+          const form = byId("exteriorForm");
+          customer.exterior.siding = toStringSafe(form.elements.siding.value);
+          customer.exterior.fascia = toStringSafe(form.elements.fascia.value);
+          customer.exterior.soffit = toStringSafe(form.elements.soffit.value);
+          customer.exterior.gutters = toStringSafe(form.elements.gutters.value);
+          customer.exterior.windows = toStringSafe(form.elements.windows.value);
+          customer.exterior.doors = toStringSafe(form.elements.doors.value);
+          customer.exterior.trim = toStringSafe(form.elements.trim.value);
+          customer.exterior.painting = toStringSafe(form.elements.painting.value);
+          customer.exterior.stormDamage = toStringSafe(form.elements.stormDamage.value);
+          customer.exterior.measurementNotes = toStringSafe(form.elements.measurementNotes.value);
+          customer.exterior.materialEstimate = round2(toNumber(form.elements.materialEstimate.value));
+          customer.exterior.laborEstimate = round2(toNumber(form.elements.laborEstimate.value));
+          recalcExteriorTotals(customer.exterior);
+          customer.exterior.exteriorStatus = toStringSafe(form.elements.exteriorStatus.value);
+          customer.updatedAt = new Date().toISOString();
+          form.elements.totalEstimate.value = customer.exterior.totalEstimate.toFixed(2);
+          saveCustomers();
+          renderDashboard();
+          renderCustomerList();
+          showToast("Exterior details saved.", "success");
+        });
+        ["materialEstimate", "laborEstimate"].forEach(function (fieldName) {
+          byId("exteriorForm").elements[fieldName].addEventListener("input", function () {
+            const form = byId("exteriorForm");
+            const total = round2(toNumber(form.elements.materialEstimate.value) + toNumber(form.elements.laborEstimate.value));
+            form.elements.totalEstimate.value = total.toFixed(2);
+          });
+        });
+      }
+
+      function bindInteriorEvents() {
+        byId("interiorCustomerSelect").addEventListener("change", function (event) {
+          state.selectedInteriorCustomerId = event.target.value || "";
+          loadInteriorFormForSelected();
+        });
+        byId("interiorForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          const customer = state.customers.find(function (row) { return row.id === state.selectedInteriorCustomerId; });
+          if (!customer) {
+            showToast("Select a customer/job first.", "warning");
+            return;
+          }
+          const form = byId("interiorForm");
+          customer.interior.drywall = toStringSafe(form.elements.drywall.value);
+          customer.interior.paint = toStringSafe(form.elements.paint.value);
+          customer.interior.flooring = toStringSafe(form.elements.flooring.value);
+          customer.interior.cabinets = toStringSafe(form.elements.cabinets.value);
+          customer.interior.trim = toStringSafe(form.elements.trim.value);
+          customer.interior.electrical = toStringSafe(form.elements.electrical.value);
+          customer.interior.plumbing = toStringSafe(form.elements.plumbing.value);
+          customer.interior.ceiling = toStringSafe(form.elements.ceiling.value);
+          customer.interior.waterDamage = toStringSafe(form.elements.waterDamage.value);
+          customer.interior.moldConcern = boolFromValue(form.elements.moldConcern.value);
+          customer.interior.roomsAffected = toStringSafe(form.elements.roomsAffected.value);
+          customer.interior.materialEstimate = round2(toNumber(form.elements.materialEstimate.value));
+          customer.interior.laborEstimate = round2(toNumber(form.elements.laborEstimate.value));
+          recalcInteriorTotals(customer.interior);
+          customer.interior.interiorStatus = toStringSafe(form.elements.interiorStatus.value);
+          customer.updatedAt = new Date().toISOString();
+          form.elements.totalEstimate.value = customer.interior.totalEstimate.toFixed(2);
+          saveCustomers();
+          renderDashboard();
+          renderCustomerList();
+          showToast("Interior details saved.", "success");
+        });
+        ["materialEstimate", "laborEstimate"].forEach(function (fieldName) {
+          byId("interiorForm").elements[fieldName].addEventListener("input", function () {
+            const form = byId("interiorForm");
+            const total = round2(toNumber(form.elements.materialEstimate.value) + toNumber(form.elements.laborEstimate.value));
+            form.elements.totalEstimate.value = total.toFixed(2);
+          });
+        });
+      }
+
+      function bindProtectionEvents() {
+        byId("addPlanBtn").addEventListener("click", function () {
+          state.editingPlanId = null;
+          showProtectionForm(createEmptyPlan());
+        });
+        byId("cancelPlanBtn").addEventListener("click", function () {
+          hideProtectionForm();
+        });
+        byId("protectionForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          saveProtectionFromForm();
+        });
+        byId("protectionSearch").addEventListener("input", function (event) {
+          state.protectionFilters.search = event.target.value || "";
+          renderProtectionPlans();
+        });
+        byId("protectionStatusFilter").addEventListener("change", function (event) {
+          state.protectionFilters.status = event.target.value;
+          renderProtectionPlans();
+        });
+        byId("protectionListContainer").addEventListener("click", function (event) {
+          const button = event.target.closest("button[data-plan-action]");
+          if (!button) return;
+          const action = button.getAttribute("data-plan-action");
+          const id = button.getAttribute("data-id");
+          const plan = state.protectionPlans.find(function (row) { return row.id === id; });
+          if (!plan) return;
+          if (action === "edit") {
+            state.editingPlanId = plan.id;
+            showProtectionForm(plan);
+            return;
+          }
+          if (action === "duplicate") {
+            const copy = hydratePlan(plan);
+            copy.id = generateId("plan");
+            copy.customerName = (copy.customerName || "Plan") + " (Copy)";
+            copy.createdAt = new Date().toISOString();
+            copy.updatedAt = new Date().toISOString();
+            state.protectionPlans.unshift(copy);
+            savePlans();
+            renderAll();
+            showToast("Protection plan duplicated.", "success");
+            return;
+          }
+          if (action === "delete") {
+            if (!confirm("Delete this protection plan?")) return;
+            state.protectionPlans = state.protectionPlans.filter(function (row) { return row.id !== plan.id; });
+            savePlans();
+            renderAll();
+            showToast("Protection plan deleted.", "warning");
+          }
+        });
+      }
+
+      function bindContactEvents() {
+        byId("addContactBtn").addEventListener("click", function () {
+          state.editingContactId = null;
+          showContactForm(createEmptyContact());
+        });
+        byId("cancelContactBtn").addEventListener("click", function () {
+          hideContactForm();
+        });
+        byId("contactForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          saveContactFromForm();
+        });
+        byId("contactSearch").addEventListener("input", function (event) {
+          state.contactFilters.search = event.target.value || "";
+          renderContacts();
+        });
+        byId("contactRoleFilter").addEventListener("change", function (event) {
+          state.contactFilters.role = event.target.value;
+          renderContacts();
+        });
+        byId("contactListContainer").addEventListener("click", function (event) {
+          const button = event.target.closest("button[data-contact-action]");
+          if (!button) return;
+          const action = button.getAttribute("data-contact-action");
+          const id = button.getAttribute("data-id");
+          const contact = state.contacts.find(function (row) { return row.id === id; });
+          if (!contact) return;
+          if (action === "edit") {
+            state.editingContactId = contact.id;
+            showContactForm(contact);
+            return;
+          }
+          if (action === "delete") {
+            if (!confirm("Delete professional contact " + contact.name + "?")) return;
+            state.contacts = state.contacts.filter(function (row) { return row.id !== contact.id; });
+            saveContacts();
+            renderContacts();
+            showToast("Professional contact deleted.", "warning");
+          }
+        });
+        byId("exportContactsFromSectionBtn").addEventListener("click", function () {
+          exportContactsCSV();
+        });
+      }
+
+      function bindReportEvents() {
+        byId("exportCustomersCsvBtn").addEventListener("click", exportCustomersCSV);
+        byId("exportContactsCsvBtn").addEventListener("click", exportContactsCSV);
+        byId("exportPlansCsvBtn").addEventListener("click", exportPlansCSV);
+        byId("exportJsonBtn").addEventListener("click", exportFullJSONBackup);
+        byId("importJsonBtn").addEventListener("click", importJSONBackup);
+      }
+
+      function showCustomerForm(customer) {
+        const formWrap = byId("customerFormWrap");
+        const form = byId("customerForm");
+        byId("customerFormTitle").textContent = state.editingCustomerId ? "Edit Customer/Job" : "Add Customer/Job";
+        form.elements.dateAdded.value = toStringSafe(customer.dateAdded) || todayISO();
+        form.elements.customerName.value = toStringSafe(customer.customerName);
+        form.elements.secondContactName.value = toStringSafe(customer.secondContactName);
+        form.elements.phone.value = toStringSafe(customer.phone);
+        form.elements.altPhone.value = toStringSafe(customer.altPhone);
+        form.elements.email.value = toStringSafe(customer.email);
+        form.elements.address.value = toStringSafe(customer.address);
+        form.elements.city.value = toStringSafe(customer.city);
+        form.elements.state.value = toStringSafe(customer.state);
+        form.elements.zip.value = toStringSafe(customer.zip);
+        form.elements.source.value = normalizeFromList(customer.source, SOURCE_OPTIONS, SOURCE_OPTIONS[0]);
+        form.elements.jobCategory.value = normalizeFromList(customer.jobCategory, JOB_CATEGORY_OPTIONS, JOB_CATEGORY_OPTIONS[0]);
+        form.elements.jobStatus.value = normalizeFromList(customer.jobStatus, JOB_STATUS_OPTIONS, JOB_STATUS_OPTIONS[0]);
+        form.elements.insuranceClaim.value = boolFromValue(customer.insuranceClaim) ? "true" : "false";
+        form.elements.insuranceCarrier.value = toStringSafe(customer.insuranceCarrier);
+        form.elements.claimNumber.value = toStringSafe(customer.claimNumber);
+        form.elements.adjusterName.value = toStringSafe(customer.adjusterName);
+        form.elements.adjusterPhone.value = toStringSafe(customer.adjusterPhone);
+        form.elements.priceQuoted.value = round2(toNumber(customer.priceQuoted));
+        form.elements.priceAccepted.value = round2(toNumber(customer.priceAccepted));
+        form.elements.depositCollected.value = round2(toNumber(customer.depositCollected));
+        form.elements.amountPaid.value = round2(toNumber(customer.amountPaid));
+        form.elements.taxPercentage.value = round2(toNumber(customer.taxPercentage || 25));
+        form.elements.followUpDate.value = toStringSafe(customer.followUpDate);
+        form.elements.jobScheduledDate.value = toStringSafe(customer.jobScheduledDate);
+        form.elements.notes.value = toStringSafe(customer.notes);
+        form.elements.attachmentsPlaceholder.value = toStringSafe(customer.attachmentsPlaceholder);
+        formWrap.classList.remove("hidden");
+        updateCustomerFinancialPreview();
+      }
+
+      function hideCustomerForm() {
+        state.editingCustomerId = null;
+        byId("customerFormWrap").classList.add("hidden");
+        byId("customerForm").reset();
+      }
+
+      function updateCustomerFinancialPreview() {
+        const form = byId("customerForm");
+        const accepted = toNumber(form.elements.priceAccepted.value);
+        const taxPct = toNumber(form.elements.taxPercentage.value);
+        const deposit = toNumber(form.elements.depositCollected.value);
+        const paid = toNumber(form.elements.amountPaid.value);
+        const taxReserve = round2((accepted * taxPct) / 100);
+        const netAfterTaxReserve = round2(accepted - taxReserve);
+        const balanceDue = round2(accepted - deposit - paid);
+        byId("calcTaxReserve").value = taxReserve.toFixed(2);
+        byId("calcNetAfterTaxReserve").value = netAfterTaxReserve.toFixed(2);
+        byId("calcBalanceDue").value = balanceDue.toFixed(2);
+      }
+
+      function saveCustomerFromForm() {
+        const form = byId("customerForm");
+        const current = state.editingCustomerId
+          ? state.customers.find(function (row) { return row.id === state.editingCustomerId; })
+          : null;
+        const customer = current ? hydrateCustomer(current) : createEmptyCustomer();
+        customer.id = current ? current.id : generateId("cust");
+        customer.createdAt = current ? current.createdAt : new Date().toISOString();
+        customer.updatedAt = new Date().toISOString();
+        customer.dateAdded = toStringSafe(form.elements.dateAdded.value) || todayISO();
+        customer.customerName = toStringSafe(form.elements.customerName.value);
+        customer.secondContactName = toStringSafe(form.elements.secondContactName.value);
+        customer.phone = toStringSafe(form.elements.phone.value);
+        customer.altPhone = toStringSafe(form.elements.altPhone.value);
+        customer.email = toStringSafe(form.elements.email.value);
+        customer.address = toStringSafe(form.elements.address.value);
+        customer.city = toStringSafe(form.elements.city.value);
+        customer.state = toStringSafe(form.elements.state.value);
+        customer.zip = toStringSafe(form.elements.zip.value);
+        customer.source = normalizeFromList(form.elements.source.value, SOURCE_OPTIONS, SOURCE_OPTIONS[0]);
+        customer.jobCategory = normalizeFromList(form.elements.jobCategory.value, JOB_CATEGORY_OPTIONS, JOB_CATEGORY_OPTIONS[0]);
+        customer.jobStatus = normalizeFromList(form.elements.jobStatus.value, JOB_STATUS_OPTIONS, JOB_STATUS_OPTIONS[0]);
+        customer.insuranceClaim = boolFromValue(form.elements.insuranceClaim.value);
+        customer.insuranceCarrier = toStringSafe(form.elements.insuranceCarrier.value);
+        customer.claimNumber = toStringSafe(form.elements.claimNumber.value);
+        customer.adjusterName = toStringSafe(form.elements.adjusterName.value);
+        customer.adjusterPhone = toStringSafe(form.elements.adjusterPhone.value);
+        customer.priceQuoted = round2(toNumber(form.elements.priceQuoted.value));
+        customer.priceAccepted = round2(toNumber(form.elements.priceAccepted.value));
+        customer.depositCollected = round2(toNumber(form.elements.depositCollected.value));
+        customer.amountPaid = round2(toNumber(form.elements.amountPaid.value));
+        customer.taxPercentage = round2(toNumber(form.elements.taxPercentage.value || 25));
+        customer.followUpDate = toStringSafe(form.elements.followUpDate.value);
+        customer.jobScheduledDate = toStringSafe(form.elements.jobScheduledDate.value);
+        customer.notes = toStringSafe(form.elements.notes.value);
+        customer.attachmentsPlaceholder = toStringSafe(form.elements.attachmentsPlaceholder.value);
+        recalcCustomerFinancials(customer);
+
+        if (current) {
+          state.customers = state.customers.map(function (row) {
+            return row.id === customer.id ? customer : row;
+          });
+          showToast("Customer/job updated.", "success");
+        } else {
+          state.customers.unshift(customer);
+          showToast("Customer/job added.", "success");
+        }
+        saveCustomers();
+        hideCustomerForm();
+        renderAll();
+      }
+
+      function getFilteredCustomers() {
+        const today = todayISO();
+        const search = state.customerFilters.search.trim().toLowerCase();
+        let rows = state.customers.slice();
+
+        if (search) {
+          rows = rows.filter(function (row) {
+            const hay = [
+              row.customerName,
+              row.secondContactName,
+              row.phone,
+              row.altPhone,
+              row.email,
+              row.address,
+              row.city,
+              row.state,
+              row.zip,
+              row.notes,
+              row.jobCategory,
+              row.jobStatus
+            ].join(" ").toLowerCase();
+            return hay.includes(search);
+          });
+        }
+
+        if (state.customerFilters.category !== "all") {
+          rows = rows.filter(function (row) { return row.jobCategory === state.customerFilters.category; });
+        }
+        if (state.customerFilters.status !== "all") {
+          rows = rows.filter(function (row) { return row.jobStatus === state.customerFilters.status; });
+        }
+
+        if (state.customerFilters.followup === "dueToday") {
+          rows = rows.filter(function (row) { return row.followUpDate === today; });
+        } else if (state.customerFilters.followup === "overdue") {
+          rows = rows.filter(function (row) { return row.followUpDate && row.followUpDate < today; });
+        } else if (state.customerFilters.followup === "open") {
+          rows = rows.filter(function (row) { return row.followUpDate && row.followUpDate >= today; });
+        } else if (state.customerFilters.followup === "none") {
+          rows = rows.filter(function (row) { return !row.followUpDate; });
+        }
+
+        const sort = state.customerFilters.sort;
+        rows.sort(function (a, b) {
+          if (sort === "oldest") {
+            return String(a.dateAdded).localeCompare(String(b.dateAdded));
+          }
+          if (sort === "highestAccepted") {
+            return toNumber(b.priceAccepted) - toNumber(a.priceAccepted);
+          }
+          if (sort === "followupSoonest") {
+            const aDate = a.followUpDate || "9999-99-99";
+            const bDate = b.followUpDate || "9999-99-99";
+            if (aDate === bDate) return String(b.dateAdded).localeCompare(String(a.dateAdded));
+            return aDate.localeCompare(bDate);
+          }
+          return String(b.dateAdded).localeCompare(String(a.dateAdded));
+        });
+        return rows;
+      }
+
+      function renderCustomerList() {
+        const list = getFilteredCustomers();
+        byId("customerMeta").textContent = list.length + " customer/job record(s) shown";
+        if (state.customerView === "table") {
+          renderCustomerTable(list);
+        } else {
+          renderCustomerCards(list);
+        }
+      }
+
+      function renderCustomerTable(list) {
+        const container = byId("customerListContainer");
+        if (list.length === 0) {
+          container.innerHTML = '<div class="panel-muted">No customer/job records match your filters.</div>';
+          return;
+        }
+        const rows = list.map(function (row) {
+          return (
+            "<tr>" +
+            "<td><strong>" + escapeHtml(row.customerName || "Unnamed") + "</strong><br><span class='pill'>" + escapeHtml(row.jobCategory) + "</span></td>" +
+            "<td>" + escapeHtml(row.jobStatus) + "</td>" +
+            "<td>" + escapeHtml(row.phone) + "<br>" + escapeHtml(row.email) + "</td>" +
+            "<td>" + escapeHtml((row.address || "") + (row.city ? ", " + row.city : "")) + "</td>" +
+            "<td>" + (row.followUpDate ? escapeHtml(row.followUpDate) : "—") + "</td>" +
+            "<td>" + formatMoney(row.priceAccepted) + "</td>" +
+            "<td>" + formatMoney(row.balanceDue) + "</td>" +
+            "<td><div class='actions'>" +
+            "<button class='btn btn-small' data-action='edit' data-id='" + escapeAttr(row.id) + "'>Edit</button>" +
+            "<button class='btn btn-small' data-action='duplicate' data-id='" + escapeAttr(row.id) + "'>Duplicate</button>" +
+            "<button class='btn btn-small' data-action='scope' data-id='" + escapeAttr(row.id) + "'>Open Scope</button>" +
+            "<button class='btn btn-small btn-danger' data-action='delete' data-id='" + escapeAttr(row.id) + "'>Delete</button>" +
+            "</div></td>" +
+            "</tr>"
+          );
+        }).join("");
+        container.innerHTML =
+          "<div class='list-shell'>" +
+          "<table>" +
+          "<thead><tr>" +
+          "<th>Customer/Job</th><th>Status</th><th>Contact</th><th>Address</th><th>Follow-up</th><th>Accepted</th><th>Balance Due</th><th>Actions</th>" +
+          "</tr></thead>" +
+          "<tbody>" + rows + "</tbody>" +
+          "</table>" +
+          "</div>";
+      }
+
+      function renderCustomerCards(list) {
+        const container = byId("customerListContainer");
+        if (list.length === 0) {
+          container.innerHTML = '<div class="panel-muted">No customer/job records match your filters.</div>';
+          return;
+        }
+        const cards = list.map(function (row) {
+          return (
+            "<article class='job-card'>" +
+            "<h4>" + escapeHtml(row.customerName || "Unnamed") + "</h4>" +
+            "<div class='meta'>" + escapeHtml(row.jobCategory) + " • " + escapeHtml(row.jobStatus) + "</div>" +
+            "<div class='line'><strong>Phone:</strong> " + escapeHtml(row.phone || "—") + "</div>" +
+            "<div class='line'><strong>Address:</strong> " + escapeHtml(row.address || "—") + "</div>" +
+            "<div class='line'><strong>Follow-up:</strong> " + escapeHtml(row.followUpDate || "—") + "</div>" +
+            "<div class='line'><strong>Accepted:</strong> " + formatMoney(row.priceAccepted) + "</div>" +
+            "<div class='line'><strong>Balance due:</strong> " + formatMoney(row.balanceDue) + "</div>" +
+            "<div class='actions'>" +
+            "<button class='btn btn-small' data-action='edit' data-id='" + escapeAttr(row.id) + "'>Edit</button>" +
+            "<button class='btn btn-small' data-action='duplicate' data-id='" + escapeAttr(row.id) + "'>Duplicate</button>" +
+            "<button class='btn btn-small' data-action='scope' data-id='" + escapeAttr(row.id) + "'>Open Scope</button>" +
+            "<button class='btn btn-small btn-danger' data-action='delete' data-id='" + escapeAttr(row.id) + "'>Delete</button>" +
+            "</div>" +
+            "</article>"
+          );
+        }).join("");
+        container.innerHTML = "<div class='cards-wrap'>" + cards + "</div>";
+      }
+
+      function bindScopeSelectOptions(selectElement, selectedId) {
+        if (!selectElement) return;
+        if (state.customers.length === 0) {
+          selectElement.innerHTML = "<option value=''>No customers/jobs yet</option>";
+          return;
+        }
+        const options = state.customers.map(function (row) {
+          return "<option value='" + escapeAttr(row.id) + "'>" + escapeHtml(row.customerName || "Unnamed") + " — " + escapeHtml(row.jobCategory) + "</option>";
+        }).join("");
+        selectElement.innerHTML = options;
+        const preferredId = selectedId || state.customers[0].id;
+        selectElement.value = preferredId;
+      }
+
+      function renderScopeSelectors() {
+        bindScopeSelectOptions(byId("roofingCustomerSelect"), state.selectedRoofingCustomerId);
+        bindScopeSelectOptions(byId("exteriorCustomerSelect"), state.selectedExteriorCustomerId);
+        bindScopeSelectOptions(byId("interiorCustomerSelect"), state.selectedInteriorCustomerId);
+
+        if (state.customers.length > 0) {
+          state.selectedRoofingCustomerId = byId("roofingCustomerSelect").value;
+          state.selectedExteriorCustomerId = byId("exteriorCustomerSelect").value;
+          state.selectedInteriorCustomerId = byId("interiorCustomerSelect").value;
+        } else {
+          state.selectedRoofingCustomerId = "";
+          state.selectedExteriorCustomerId = "";
+          state.selectedInteriorCustomerId = "";
+        }
+        loadRoofingFormForSelected();
+        loadExteriorFormForSelected();
+        loadInteriorFormForSelected();
+      }
+
+      function loadRoofingFormForSelected() {
+        const customer = state.customers.find(function (row) { return row.id === state.selectedRoofingCustomerId; });
+        const form = byId("roofingForm");
+        if (!customer) {
+          form.reset();
+          return;
+        }
+        form.elements.roofType.value = normalizeFromList(customer.roofing.roofType, ROOF_TYPE_OPTIONS, ROOF_TYPE_OPTIONS[0]);
+        form.elements.serviceType.value = normalizeFromList(customer.roofing.serviceType, ROOF_SERVICE_OPTIONS, ROOF_SERVICE_OPTIONS[0]);
+        form.elements.squares.value = round2(toNumber(customer.roofing.squares));
+        form.elements.pitch.value = toStringSafe(customer.roofing.pitch);
+        form.elements.stories.value = Math.max(0, Math.round(toNumber(customer.roofing.stories)));
+        form.elements.damageNotes.value = toStringSafe(customer.roofing.damageNotes);
+        form.elements.shingleColor.value = toStringSafe(customer.roofing.shingleColor);
+        form.elements.materialEstimate.value = round2(toNumber(customer.roofing.materialEstimate));
+        form.elements.laborEstimate.value = round2(toNumber(customer.roofing.laborEstimate));
+        form.elements.totalEstimate.value = round2(toNumber(customer.roofing.totalEstimate)).toFixed(2);
+        form.elements.roofStatus.value = toStringSafe(customer.roofing.roofStatus);
+      }
+
+      function loadExteriorFormForSelected() {
+        const customer = state.customers.find(function (row) { return row.id === state.selectedExteriorCustomerId; });
+        const form = byId("exteriorForm");
+        if (!customer) {
+          form.reset();
+          return;
+        }
+        form.elements.siding.value = toStringSafe(customer.exterior.siding);
+        form.elements.fascia.value = toStringSafe(customer.exterior.fascia);
+        form.elements.soffit.value = toStringSafe(customer.exterior.soffit);
+        form.elements.gutters.value = toStringSafe(customer.exterior.gutters);
+        form.elements.windows.value = toStringSafe(customer.exterior.windows);
+        form.elements.doors.value = toStringSafe(customer.exterior.doors);
+        form.elements.trim.value = toStringSafe(customer.exterior.trim);
+        form.elements.painting.value = toStringSafe(customer.exterior.painting);
+        form.elements.stormDamage.value = toStringSafe(customer.exterior.stormDamage);
+        form.elements.measurementNotes.value = toStringSafe(customer.exterior.measurementNotes);
+        form.elements.materialEstimate.value = round2(toNumber(customer.exterior.materialEstimate));
+        form.elements.laborEstimate.value = round2(toNumber(customer.exterior.laborEstimate));
+        form.elements.totalEstimate.value = round2(toNumber(customer.exterior.totalEstimate)).toFixed(2);
+        form.elements.exteriorStatus.value = toStringSafe(customer.exterior.exteriorStatus);
+      }
+
+      function loadInteriorFormForSelected() {
+        const customer = state.customers.find(function (row) { return row.id === state.selectedInteriorCustomerId; });
+        const form = byId("interiorForm");
+        if (!customer) {
+          form.reset();
+          return;
+        }
+        form.elements.drywall.value = toStringSafe(customer.interior.drywall);
+        form.elements.paint.value = toStringSafe(customer.interior.paint);
+        form.elements.flooring.value = toStringSafe(customer.interior.flooring);
+        form.elements.cabinets.value = toStringSafe(customer.interior.cabinets);
+        form.elements.trim.value = toStringSafe(customer.interior.trim);
+        form.elements.electrical.value = toStringSafe(customer.interior.electrical);
+        form.elements.plumbing.value = toStringSafe(customer.interior.plumbing);
+        form.elements.ceiling.value = toStringSafe(customer.interior.ceiling);
+        form.elements.waterDamage.value = toStringSafe(customer.interior.waterDamage);
+        form.elements.moldConcern.value = boolFromValue(customer.interior.moldConcern) ? "true" : "false";
+        form.elements.roomsAffected.value = toStringSafe(customer.interior.roomsAffected);
+        form.elements.materialEstimate.value = round2(toNumber(customer.interior.materialEstimate));
+        form.elements.laborEstimate.value = round2(toNumber(customer.interior.laborEstimate));
+        form.elements.totalEstimate.value = round2(toNumber(customer.interior.totalEstimate)).toFixed(2);
+        form.elements.interiorStatus.value = toStringSafe(customer.interior.interiorStatus);
+      }
+
+      function showProtectionForm(plan) {
+        const wrap = byId("protectionFormWrap");
+        const form = byId("protectionForm");
+        byId("protectionFormTitle").textContent = state.editingPlanId ? "Edit Protection Plan" : "Add Protection Plan";
+        form.elements.customerName.value = toStringSafe(plan.customerName);
+        form.elements.address.value = toStringSafe(plan.address);
+        form.elements.planType.value = normalizeFromList(plan.planType, PLAN_TYPE_OPTIONS, PLAN_TYPE_OPTIONS[0]);
+        form.elements.pricePerYear.value = round2(toNumber(plan.pricePerYear || 249));
+        form.elements.startDate.value = toStringSafe(plan.startDate);
+        form.elements.renewalDate.value = toStringSafe(plan.renewalDate);
+        form.elements.paid.value = boolFromValue(plan.paid) ? "true" : "false";
+        form.elements.firstInspectionDate.value = toStringSafe(plan.firstInspectionDate);
+        form.elements.secondInspectionDate.value = toStringSafe(plan.secondInspectionDate);
+        form.elements.servicesIncludedNotes.value = toStringSafe(plan.servicesIncludedNotes);
+        form.elements.renewalReminder.value = toStringSafe(plan.renewalReminder);
+        form.elements.planStatus.value = normalizeFromList(plan.planStatus, PLAN_STATUS_OPTIONS, PLAN_STATUS_OPTIONS[0]);
+        wrap.classList.remove("hidden");
+      }
+
+      function hideProtectionForm() {
+        state.editingPlanId = null;
+        byId("protectionFormWrap").classList.add("hidden");
+        byId("protectionForm").reset();
+      }
+
+      function saveProtectionFromForm() {
+        const form = byId("protectionForm");
+        const current = state.editingPlanId
+          ? state.protectionPlans.find(function (row) { return row.id === state.editingPlanId; })
+          : null;
+        const plan = current ? hydratePlan(current) : createEmptyPlan();
+        plan.id = current ? current.id : generateId("plan");
+        plan.createdAt = current ? current.createdAt : new Date().toISOString();
+        plan.updatedAt = new Date().toISOString();
+        plan.customerName = toStringSafe(form.elements.customerName.value);
+        plan.address = toStringSafe(form.elements.address.value);
+        plan.planType = normalizeFromList(form.elements.planType.value, PLAN_TYPE_OPTIONS, PLAN_TYPE_OPTIONS[0]);
+        plan.pricePerYear = round2(toNumber(form.elements.pricePerYear.value || 249));
+        plan.startDate = toStringSafe(form.elements.startDate.value);
+        plan.renewalDate = toStringSafe(form.elements.renewalDate.value);
+        plan.paid = boolFromValue(form.elements.paid.value);
+        plan.firstInspectionDate = toStringSafe(form.elements.firstInspectionDate.value);
+        plan.secondInspectionDate = toStringSafe(form.elements.secondInspectionDate.value);
+        plan.servicesIncludedNotes = toStringSafe(form.elements.servicesIncludedNotes.value);
+        plan.renewalReminder = toStringSafe(form.elements.renewalReminder.value);
+        plan.planStatus = normalizeFromList(form.elements.planStatus.value, PLAN_STATUS_OPTIONS, PLAN_STATUS_OPTIONS[0]);
+
+        if (current) {
+          state.protectionPlans = state.protectionPlans.map(function (row) { return row.id === plan.id ? plan : row; });
+          showToast("Protection plan updated.", "success");
+        } else {
+          state.protectionPlans.unshift(plan);
+          showToast("Protection plan added.", "success");
+        }
+        savePlans();
+        hideProtectionForm();
+        renderAll();
+      }
+
+      function getFilteredProtectionPlans() {
+        let list = state.protectionPlans.slice();
+        const search = state.protectionFilters.search.trim().toLowerCase();
+        if (search) {
+          list = list.filter(function (row) {
+            const hay = [row.customerName, row.address, row.servicesIncludedNotes, row.planType, row.planStatus].join(" ").toLowerCase();
+            return hay.includes(search);
+          });
+        }
+        if (state.protectionFilters.status !== "all") {
+          list = list.filter(function (row) { return row.planStatus === state.protectionFilters.status; });
+        }
+        list.sort(function (a, b) {
+          return String(b.updatedAt).localeCompare(String(a.updatedAt));
+        });
+        return list;
+      }
+
+      function renderProtectionPlans() {
+        const list = getFilteredProtectionPlans();
+        byId("protectionMeta").textContent = list.length + " protection plan record(s) shown";
+        const container = byId("protectionListContainer");
+        if (list.length === 0) {
+          container.innerHTML = '<div class="panel-muted">No protection plans match your filters.</div>';
+          return;
+        }
+        const rows = list.map(function (plan) {
+          return (
+            "<tr>" +
+            "<td><strong>" + escapeHtml(plan.customerName || "Unnamed") + "</strong><br><span class='pill'>" + escapeHtml(plan.planType) + "</span></td>" +
+            "<td>" + escapeHtml(plan.address || "—") + "</td>" +
+            "<td>" + formatMoney(plan.pricePerYear) + "</td>" +
+            "<td>" + escapeHtml(plan.planStatus) + "</td>" +
+            "<td>" + (plan.renewalDate ? escapeHtml(plan.renewalDate) : "—") + "</td>" +
+            "<td>" + (plan.paid ? "Yes" : "No") + "</td>" +
+            "<td><div class='actions'>" +
+            "<button class='btn btn-small' data-plan-action='edit' data-id='" + escapeAttr(plan.id) + "'>Edit</button>" +
+            "<button class='btn btn-small' data-plan-action='duplicate' data-id='" + escapeAttr(plan.id) + "'>Duplicate</button>" +
+            "<button class='btn btn-small btn-danger' data-plan-action='delete' data-id='" + escapeAttr(plan.id) + "'>Delete</button>" +
+            "</div></td>" +
+            "</tr>"
+          );
+        }).join("");
+        container.innerHTML =
+          "<div class='list-shell'><table>" +
+          "<thead><tr><th>Customer</th><th>Address</th><th>Price/Year</th><th>Status</th><th>Renewal</th><th>Paid?</th><th>Actions</th></tr></thead>" +
+          "<tbody>" + rows + "</tbody></table></div>";
+      }
+
+      function showContactForm(contact) {
+        const wrap = byId("contactFormWrap");
+        const form = byId("contactForm");
+        byId("contactFormTitle").textContent = state.editingContactId ? "Edit Professional Contact" : "Add Professional Contact";
+        form.elements.name.value = toStringSafe(contact.name);
+        form.elements.company.value = toStringSafe(contact.company);
+        form.elements.roleType.value = normalizeFromList(contact.roleType, CONTACT_ROLE_OPTIONS, CONTACT_ROLE_OPTIONS[0]);
+        form.elements.phone.value = toStringSafe(contact.phone);
+        form.elements.email.value = toStringSafe(contact.email);
+        form.elements.website.value = toStringSafe(contact.website);
+        form.elements.address.value = toStringSafe(contact.address);
+        form.elements.serviceTrade.value = toStringSafe(contact.serviceTrade);
+        form.elements.notes.value = toStringSafe(contact.notes);
+        form.elements.rating.value = String(Math.min(5, Math.max(1, Math.round(toNumber(contact.rating || 3)))));
+        form.elements.preferredContactMethod.value = toStringSafe(contact.preferredContactMethod);
+        form.elements.lastContactedDate.value = toStringSafe(contact.lastContactedDate);
+        form.elements.followUpDate.value = toStringSafe(contact.followUpDate);
+        wrap.classList.remove("hidden");
+      }
+
+      function hideContactForm() {
+        state.editingContactId = null;
+        byId("contactFormWrap").classList.add("hidden");
+        byId("contactForm").reset();
+      }
+
+      function saveContactFromForm() {
+        const form = byId("contactForm");
+        const current = state.editingContactId
+          ? state.contacts.find(function (row) { return row.id === state.editingContactId; })
+          : null;
+        const contact = current ? hydrateContact(current) : createEmptyContact();
+        contact.id = current ? current.id : generateId("contact");
+        contact.createdAt = current ? current.createdAt : new Date().toISOString();
+        contact.updatedAt = new Date().toISOString();
+        contact.name = toStringSafe(form.elements.name.value);
+        contact.company = toStringSafe(form.elements.company.value);
+        contact.roleType = normalizeFromList(form.elements.roleType.value, CONTACT_ROLE_OPTIONS, CONTACT_ROLE_OPTIONS[0]);
+        contact.phone = toStringSafe(form.elements.phone.value);
+        contact.email = toStringSafe(form.elements.email.value);
+        contact.website = toStringSafe(form.elements.website.value);
+        contact.address = toStringSafe(form.elements.address.value);
+        contact.serviceTrade = toStringSafe(form.elements.serviceTrade.value);
+        contact.notes = toStringSafe(form.elements.notes.value);
+        contact.rating = Math.min(5, Math.max(1, Math.round(toNumber(form.elements.rating.value || 3))));
+        contact.preferredContactMethod = toStringSafe(form.elements.preferredContactMethod.value);
+        contact.lastContactedDate = toStringSafe(form.elements.lastContactedDate.value);
+        contact.followUpDate = toStringSafe(form.elements.followUpDate.value);
+
+        if (current) {
+          state.contacts = state.contacts.map(function (row) { return row.id === contact.id ? contact : row; });
+          showToast("Professional contact updated.", "success");
+        } else {
+          state.contacts.unshift(contact);
+          showToast("Professional contact added.", "success");
+        }
+        saveContacts();
+        hideContactForm();
+        renderContacts();
+      }
+
+      function getFilteredContacts() {
+        let list = state.contacts.slice();
+        const search = state.contactFilters.search.trim().toLowerCase();
+        if (search) {
+          list = list.filter(function (row) {
+            const hay = [
+              row.name,
+              row.company,
+              row.roleType,
+              row.serviceTrade,
+              row.phone,
+              row.email,
+              row.notes
+            ].join(" ").toLowerCase();
+            return hay.includes(search);
+          });
+        }
+        if (state.contactFilters.role !== "all") {
+          list = list.filter(function (row) { return row.roleType === state.contactFilters.role; });
+        }
+        list.sort(function (a, b) {
+          return String(a.name).localeCompare(String(b.name));
+        });
+        return list;
+      }
+
+      function renderContacts() {
+        const list = getFilteredContacts();
+        byId("contactMeta").textContent = list.length + " professional contact(s) shown";
+        const container = byId("contactListContainer");
+        if (list.length === 0) {
+          container.innerHTML = '<div class="panel-muted">No contacts match your filters.</div>';
+          return;
+        }
+        const rows = list.map(function (contact) {
+          return (
+            "<tr>" +
+            "<td><strong>" + escapeHtml(contact.name || "Unnamed") + "</strong><br><span class='pill'>" + escapeHtml(contact.roleType) + "</span></td>" +
+            "<td>" + escapeHtml(contact.company || "—") + "</td>" +
+            "<td>" + escapeHtml(contact.phone || "—") + "<br>" + escapeHtml(contact.email || "—") + "</td>" +
+            "<td>" + escapeHtml(contact.serviceTrade || "—") + "</td>" +
+            "<td>" + escapeHtml(contact.preferredContactMethod || "—") + "</td>" +
+            "<td>" + ("★".repeat(Math.max(1, Math.min(5, Math.round(toNumber(contact.rating)))))) + "</td>" +
+            "<td>" + (contact.followUpDate ? escapeHtml(contact.followUpDate) : "—") + "</td>" +
+            "<td><div class='actions'>" +
+            "<button class='btn btn-small' data-contact-action='edit' data-id='" + escapeAttr(contact.id) + "'>Edit</button>" +
+            "<button class='btn btn-small btn-danger' data-contact-action='delete' data-id='" + escapeAttr(contact.id) + "'>Delete</button>" +
+            "</div></td>" +
+            "</tr>"
+          );
+        }).join("");
+        container.innerHTML =
+          "<div class='list-shell'><table>" +
+          "<thead><tr><th>Name</th><th>Company</th><th>Contact</th><th>Service/Trade</th><th>Preferred Method</th><th>Rating</th><th>Follow-up</th><th>Actions</th></tr></thead>" +
+          "<tbody>" + rows + "</tbody></table></div>";
+      }
+
+      function countFollowUps(customers) {
+        const today = todayISO();
+        let dueToday = 0;
+        let overdue = 0;
+        let open = 0;
+        customers.forEach(function (row) {
+          if (!row.followUpDate) return;
+          if (row.followUpDate === today) dueToday += 1;
+          if (row.followUpDate < today) overdue += 1;
+          if (row.followUpDate >= today) open += 1;
+        });
+        return { dueToday: dueToday, overdue: overdue, open: open };
+      }
+
+      function toDashboardCategory(category) {
+        if (category === "Roofing") return "Roofing";
+        if (category === "Siding" || category === "Exterior Damage") return "Exterior";
+        if (category === "Interior Damage") return "Interior";
+        if (category === "Protection Plan") return "Protection Plan";
+        return "General";
+      }
+
+      function renderDashboard() {
+        const followups = countFollowUps(state.customers);
+        const totals = state.customers.reduce(function (acc, row) {
+          acc.pipeline += toNumber(row.priceQuoted);
+          acc.accepted += toNumber(row.priceAccepted);
+          acc.collected += toNumber(row.depositCollected) + toNumber(row.amountPaid);
+          acc.taxReserve += toNumber(row.taxReserve);
+          acc.netReserve += toNumber(row.netAfterTaxReserve);
+          return acc;
+        }, {
+          pipeline: 0,
+          accepted: 0,
+          collected: 0,
+          taxReserve: 0,
+          netReserve: 0
+        });
+
+        const activePlans = state.protectionPlans.filter(function (plan) { return plan.planStatus === "Active"; });
+        const activePlanRevenue = activePlans.reduce(function (sum, plan) { return sum + toNumber(plan.pricePerYear); }, 0);
+
+        const cards = [
+          { label: "Total customers/jobs", value: state.customers.length },
+          { label: "Open follow-ups", value: followups.open },
+          { label: "Follow-ups due today", value: followups.dueToday },
+          { label: "Overdue follow-ups", value: followups.overdue },
+          { label: "Total estimated pipeline value", value: formatMoney(totals.pipeline) },
+          { label: "Total accepted value", value: formatMoney(totals.accepted) },
+          { label: "Total collected/deposits", value: formatMoney(totals.collected) },
+          { label: "Estimated tax reserve", value: formatMoney(totals.taxReserve) },
+          { label: "Estimated net after-tax reserve", value: formatMoney(totals.netReserve) },
+          { label: "Active protection plans", value: activePlans.length },
+          { label: "Yearly protection plan revenue", value: formatMoney(activePlanRevenue) }
+        ];
+
+        byId("dashboardCards").innerHTML = cards.map(function (card) {
+          return (
+            "<div class='summary-card'>" +
+            "<div class='label'>" + escapeHtml(card.label) + "</div>" +
+            "<div class='value'>" + escapeHtml(String(card.value)) + "</div>" +
+            "</div>"
+          );
+        }).join("");
+
+        const categoryTotals = {
+          Roofing: 0,
+          Exterior: 0,
+          Interior: 0,
+          "Protection Plan": 0,
+          General: 0
+        };
+        state.customers.forEach(function (row) {
+          const bucket = toDashboardCategory(row.jobCategory);
+          categoryTotals[bucket] += 1;
+        });
+        byId("dashboardCategoryCards").innerHTML = Object.keys(categoryTotals).map(function (name) {
+          return (
+            "<div class='summary-card'>" +
+            "<div class='label'>" + escapeHtml(name) + "</div>" +
+            "<div class='value'>" + escapeHtml(String(categoryTotals[name])) + "</div>" +
+            "</div>"
+          );
+        }).join("");
+      }
+
+      function exportCustomersCSV() {
+        const rows = state.customers.map(function (row) {
+          return {
+            id: row.id,
+            dateAdded: row.dateAdded,
+            customerName: row.customerName,
+            secondContactName: row.secondContactName,
+            phone: row.phone,
+            altPhone: row.altPhone,
+            email: row.email,
+            address: row.address,
+            city: row.city,
+            state: row.state,
+            zip: row.zip,
+            source: row.source,
+            jobCategory: row.jobCategory,
+            jobStatus: row.jobStatus,
+            insuranceClaim: row.insuranceClaim ? "Yes" : "No",
+            insuranceCarrier: row.insuranceCarrier,
+            claimNumber: row.claimNumber,
+            adjusterName: row.adjusterName,
+            adjusterPhone: row.adjusterPhone,
+            priceQuoted: row.priceQuoted,
+            priceAccepted: row.priceAccepted,
+            depositCollected: row.depositCollected,
+            amountPaid: row.amountPaid,
+            balanceDue: row.balanceDue,
+            taxPercentage: row.taxPercentage,
+            taxReserve: row.taxReserve,
+            netAfterTaxReserve: row.netAfterTaxReserve,
+            followUpDate: row.followUpDate,
+            jobScheduledDate: row.jobScheduledDate,
+            notes: row.notes,
+            attachmentsPlaceholder: row.attachmentsPlaceholder,
+            roofType: row.roofing.roofType,
+            roofServiceType: row.roofing.serviceType,
+            roofTotalEstimate: row.roofing.totalEstimate,
+            exteriorTotalEstimate: row.exterior.totalEstimate,
+            interiorTotalEstimate: row.interior.totalEstimate
+          };
+        });
+        downloadCSV("tkj_customers_jobs.csv", rows);
+      }
+
+      function exportContactsCSV() {
+        const rows = state.contacts.map(function (row) {
+          return {
+            id: row.id,
+            name: row.name,
+            company: row.company,
+            roleType: row.roleType,
+            phone: row.phone,
+            email: row.email,
+            website: row.website,
+            address: row.address,
+            serviceTrade: row.serviceTrade,
+            notes: row.notes,
+            rating: row.rating,
+            preferredContactMethod: row.preferredContactMethod,
+            lastContactedDate: row.lastContactedDate,
+            followUpDate: row.followUpDate
+          };
+        });
+        downloadCSV("tkj_professional_contacts.csv", rows);
+      }
+
+      function exportPlansCSV() {
+        const rows = state.protectionPlans.map(function (plan) {
+          return {
+            id: plan.id,
+            customerName: plan.customerName,
+            address: plan.address,
+            planType: plan.planType,
+            pricePerYear: plan.pricePerYear,
+            startDate: plan.startDate,
+            renewalDate: plan.renewalDate,
+            paid: plan.paid ? "Yes" : "No",
+            firstInspectionDate: plan.firstInspectionDate,
+            secondInspectionDate: plan.secondInspectionDate,
+            servicesIncludedNotes: plan.servicesIncludedNotes,
+            renewalReminder: plan.renewalReminder,
+            planStatus: plan.planStatus
+          };
+        });
+        downloadCSV("tkj_protection_plans.csv", rows);
+      }
+
+      function exportFullJSONBackup() {
+        const payload = {
+          app: "TKJ Field Tracker & Client Cabinet",
+          version: "v1",
+          exportedAt: new Date().toISOString(),
+          storageKeys: STORAGE_KEYS,
+          customers: state.customers,
+          contacts: state.contacts,
+          protectionPlans: state.protectionPlans
+        };
+        downloadFile("tkj_full_backup.json", JSON.stringify(payload, null, 2), "application/json");
+        showToast("Full JSON backup exported.", "success");
+      }
+
+      function importJSONBackup() {
+        const input = byId("importJsonFile");
+        if (!input.files || input.files.length < 1) {
+          showToast("Select a JSON backup file first.", "warning");
+          return;
+        }
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function () {
+          try {
+            const parsed = JSON.parse(String(reader.result || "{}"));
+            if (!confirm("Import this backup and replace current in-browser data?")) return;
+            applyImportedData(parsed);
+            input.value = "";
+          } catch (err) {
+            console.error(err);
+            showToast("Import failed: invalid JSON format.", "error");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function applyImportedData(parsed) {
+        let customers = [];
+        let contacts = [];
+        let plans = [];
+        if (Array.isArray(parsed)) {
+          customers = parsed.map(function (row) {
+            if (row && typeof row === "object" && ("customerName" in row || "jobCategory" in row)) {
+              return hydrateCustomer(row);
+            }
+            return migrateLegacyLeadRecord(row || {});
+          });
+        } else if (parsed && typeof parsed === "object") {
+          const importedCustomers = Array.isArray(parsed.customers) ? parsed.customers : (Array.isArray(parsed.leads) ? parsed.leads : []);
+          customers = importedCustomers.map(function (row) {
+            if (row && typeof row === "object" && ("customerName" in row || "jobCategory" in row)) {
+              return hydrateCustomer(row);
+            }
+            return migrateLegacyLeadRecord(row || {});
+          });
+          contacts = Array.isArray(parsed.contacts) ? parsed.contacts.map(hydrateContact) : [];
+          plans = Array.isArray(parsed.protectionPlans) ? parsed.protectionPlans.map(hydratePlan) : [];
+        }
+        state.customers = customers;
+        state.contacts = contacts;
+        state.protectionPlans = plans;
+        saveCustomers();
+        saveContacts();
+        savePlans();
+        renderAll();
+        showToast("JSON backup imported successfully.", "success");
+      }
+
+      function downloadCSV(fileName, rows) {
+        if (!Array.isArray(rows) || rows.length === 0) {
+          showToast("No data to export.", "warning");
+          return;
+        }
+        const headers = Object.keys(rows[0]);
+        const csvLines = [];
+        csvLines.push(headers.join(","));
+        rows.forEach(function (row) {
+          const line = headers.map(function (header) {
+            const rawValue = row[header] === undefined || row[header] === null ? "" : String(row[header]);
+            return '"' + rawValue.replace(/"/g, '""') + '"';
+          }).join(",");
+          csvLines.push(line);
+        });
+        downloadFile(fileName, csvLines.join("\n"), "text/csv");
+        showToast("CSV exported: " + fileName, "success");
+      }
+
+      function downloadFile(fileName, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType || "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () {
+          URL.revokeObjectURL(url);
+        }, 500);
+      }
+
+      function escapeHtml(value) {
+        return String(value === undefined || value === null ? "" : value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replace(/"/g, "&quot;");
+      }
+
+      function showToast(message, type) {
+        const container = byId("toastContainer");
+        const toast = document.createElement("div");
+        toast.className = "toast " + (type || "info");
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(function () {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(4px)";
+        }, 2600);
+        setTimeout(function () {
+          toast.remove();
+        }, 3000);
+      }
+
+      function renderAll() {
+        renderDashboard();
+        renderCustomerList();
+        renderScopeSelectors();
+        renderProtectionPlans();
+        renderContacts();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
