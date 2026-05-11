@@ -1,0 +1,97 @@
+{
+  "name": "Jarvis - Credit Guardrail",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "77418ea5-5e0f-4b07-aee2-cc453f2eb201",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8ec6db0a-996a-4f2b-aa5a-9436de89c3f2",
+              "name": "message",
+              "type": "string",
+              "value": "=Credit Guardrail check\\n\\nTODO:\\n1) Pull Credit_Tracker rows from Google Sheets\\n2) Alert when due date is within 5 days\\n3) Alert when utilization is above 30%\\n4) Generate prioritized actions with prompts/credit.md"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4640d34-b8bc-4d7c-9f79-0732af2d2d53",
+      "name": "Build Credit Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "id": "49f85b53-5596-4368-925c-db7f71357a02",
+      "name": "Send Credit Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Credit Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Credit Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Credit Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "active": false,
+  "versionId": "17ea365f-83cb-457d-b8fc-560425ee02bc",
+  "id": "jarvis-credit-guardrail",
+  "tags": []
+}

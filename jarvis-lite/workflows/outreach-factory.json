@@ -1,0 +1,88 @@
+{
+  "name": "Jarvis - Outreach Factory",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0f3ab0e5-1c6c-4703-b6e5-e18af2ddba01",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "43a91395-b353-4f7c-8a89-cbe1f4f11cd2",
+              "name": "message",
+              "type": "string",
+              "value": "=Outreach draft generated.\\n\\nTODO:\\n1) Read one new lead row from Google Sheets tab: Leads\\n2) Generate personalized outreach using prompts/outreach.md\\n3) Store Day 2/5/10 follow-ups in your sheet."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2dc45d7d-654b-445e-a7db-acd7d27c499f",
+      "name": "Build Outreach Pack",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "id": "f683ec4a-f0b4-488f-9062-6f8d86dcbad8",
+      "name": "Send Outreach Draft",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Outreach Pack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Outreach Pack": {
+      "main": [
+        [
+          {
+            "node": "Send Outreach Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "active": false,
+  "versionId": "e93153de-dfa9-4f89-8fd7-c7fd1dabf053",
+  "id": "jarvis-outreach-factory",
+  "tags": []
+}
