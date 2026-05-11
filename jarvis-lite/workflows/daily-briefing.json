@@ -1,0 +1,97 @@
+{
+  "name": "Jarvis - Daily Briefing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "0f2ff7e2-8c0b-4ab5-b280-7e3f7f141501",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7f6d0fdd-2ce9-4654-b76f-3acde86bb301",
+              "name": "message",
+              "type": "string",
+              "value": "=Good morning.\\nTop 3 today:\\n1) Revenue task\\n2) Outreach task\\n3) Credit task\\n\\nTODO: replace this Set node with an AI step using prompts/commander.md and Google Sheets data."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4f67670d-5ad3-4f91-8b34-3f37461b4f5a",
+      "name": "Build Brief",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "id": "5fd4ef4f-2f36-4b1a-b7ea-f47b8f28b54f",
+      "name": "Send Daily Brief",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Brief": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "active": false,
+  "versionId": "cad4c8e9-b691-4132-9f5c-7b9697b33511",
+  "id": "jarvis-daily-briefing",
+  "tags": []
+}

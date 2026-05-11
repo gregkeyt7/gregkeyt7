@@ -1,0 +1,97 @@
+{
+  "name": "Jarvis - Opportunity Hunter",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "8f4711b4-75bf-4d1f-8e79-e593d75bf101",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f12bf92-f2ef-46a9-96f8-5b4b1f33f211",
+              "name": "message",
+              "type": "string",
+              "value": "=Opportunity Hunter summary\\n\\nTODO:\\n1) Fetch leads from your sources\\n2) Score with prompts/opportunity.md\\n3) Append to Google Sheet tab: Leads\\n\\nTop 3 placeholders:\\n- Lead A\\n- Lead B\\n- Lead C"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4da75635-6a48-4758-8bb8-a5d07956b33d",
+      "name": "Build Opportunity Digest",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "id": "6d778431-c509-42e6-91cf-22351966aa53",
+      "name": "Send Opportunities",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Opportunity Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Opportunity Digest": {
+      "main": [
+        [
+          {
+            "node": "Send Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "active": false,
+  "versionId": "a9f754df-2ef4-4c75-8fd2-637037fba7cf",
+  "id": "jarvis-opportunity-hunter",
+  "tags": []
+}
